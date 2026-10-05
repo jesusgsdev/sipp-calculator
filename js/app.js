@@ -189,12 +189,252 @@ const elements = {
   btnExportCSV: document.getElementById('btn-export-csv'),
   btnPrint: document.getElementById('btn-print'),
 
+  // Profile Management
+  profileSelect: document.getElementById('profile-select'),
+  profileStatusBadge: document.getElementById('profile-status-badge'),
+  profileStatusText: document.getElementById('profile-status-text'),
+  btnProfileSave: document.getElementById('btn-profile-save'),
+  btnProfileSaveAs: document.getElementById('btn-profile-save-as'),
+  btnProfileScratch: document.getElementById('btn-profile-scratch'),
+  btnProfileDelete: document.getElementById('btn-profile-delete'),
+  profileModalOverlay: document.getElementById('profile-modal-overlay'),
+  profileModalForm: document.getElementById('profile-modal-form'),
+  profileNameInput: document.getElementById('profile-name-input'),
+  modalTitle: document.getElementById('modal-title'),
+  modalError: document.getElementById('modal-error'),
+  btnModalClose: document.getElementById('btn-modal-close'),
+  btnModalCancel: document.getElementById('btn-modal-cancel'),
+  profileToast: document.getElementById('profile-toast'),
+
   // Preset Buttons
   presetButtons: document.querySelectorAll('.preset-btn')
 };
 
-// Current forecast cache
+// Current forecast cache & Profile state
 let currentForecast = null;
+let currentProfileName = null;
+let isProfileModified = false;
+
+const PROFILES_STORAGE_KEY = 'uk_pension_profiles_v1';
+
+// Clean baseline for 'Start from Scratch'
+const SCRATCH_PROFILE = {
+  currentAge: 30,
+  retirementAge: 67,
+  currentPot: 0,
+  annualSalary: 40000,
+  contributionType: 'percent',
+  contribPercent: 5.0,
+  contribAmount: 167,
+  salaryIncrease: 2.5,
+  employerPercent: 3.0,
+  externalSippMonthlyNet: 0,
+  userTaxBand: 'basic',
+  inflationRate: 2.5,
+  growthRate: 6.0,
+  feeRate: 0.5,
+  takeLumpSum: true,
+  lumpSumPercent: 25,
+  drawdownRate: 4.0,
+  drawdownStrategy: 'percentOfPot',
+  includeStatePension: true,
+  statePensionAnnual: UK_DEFAULTS.CURRENT_FULL_STATE_PENSION_ANNUAL,
+  statePensionAge: UK_DEFAULTS.DEFAULT_STATE_PENSION_AGE,
+  frequency: 'monthly',
+  viewMode: 'sidebyside'
+};
+
+// Initial starter profiles when localStorage is fresh
+const DEFAULT_STARTER_PROFILES = {
+  "Standard Auto-Enrolment": {
+    currentAge: 30,
+    retirementAge: 67,
+    currentPot: 20000,
+    annualSalary: 45000,
+    contributionType: 'percent',
+    contribPercent: 5.0,
+    contribAmount: 188,
+    salaryIncrease: 3.0,
+    employerPercent: 3.0,
+    externalSippMonthlyNet: 100,
+    userTaxBand: 'basic',
+    inflationRate: 2.5,
+    growthRate: 6.0,
+    feeRate: 0.5,
+    takeLumpSum: true,
+    lumpSumPercent: 25,
+    drawdownRate: 4.0,
+    drawdownStrategy: 'percentOfPot',
+    includeStatePension: true,
+    statePensionAnnual: 11973,
+    statePensionAge: 67,
+    frequency: 'monthly',
+    viewMode: 'sidebyside'
+  },
+  "Early Retirement & SIPP Booster": {
+    currentAge: 32,
+    retirementAge: 58,
+    currentPot: 50000,
+    annualSalary: 75000,
+    contributionType: 'percent',
+    contribPercent: 12.0,
+    contribAmount: 750,
+    salaryIncrease: 3.0,
+    employerPercent: 6.0,
+    externalSippMonthlyNet: 400,
+    userTaxBand: 'higher',
+    inflationRate: 2.5,
+    growthRate: 6.5,
+    feeRate: 0.4,
+    takeLumpSum: true,
+    lumpSumPercent: 25,
+    drawdownRate: 3.75,
+    drawdownStrategy: 'percentOfPot',
+    includeStatePension: true,
+    statePensionAnnual: 11973,
+    statePensionAge: 67,
+    frequency: 'monthly',
+    viewMode: 'sidebyside'
+  }
+};
+
+function getAllProfiles() {
+  try {
+    const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(DEFAULT_STARTER_PROFILES));
+      return { ...DEFAULT_STARTER_PROFILES };
+    }
+    return JSON.parse(raw) || {};
+  } catch (err) {
+    console.warn('Failed to read profiles from localStorage:', err);
+    return {};
+  }
+}
+
+function saveAllProfiles(profiles) {
+  try {
+    localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+  } catch (err) {
+    console.error('Failed to save profiles to localStorage:', err);
+  }
+}
+
+function showToast(message, duration = 2800) {
+  if (!elements.profileToast) return;
+  elements.profileToast.textContent = message;
+  elements.profileToast.style.display = 'flex';
+  clearTimeout(elements.profileToast._timer);
+  elements.profileToast._timer = setTimeout(() => {
+    elements.profileToast.style.display = 'none';
+  }, duration);
+}
+
+function extractCurrentStateData() {
+  return {
+    currentAge: state.currentAge,
+    retirementAge: state.retirementAge,
+    currentPot: state.currentPot,
+    annualSalary: state.annualSalary,
+    contributionType: state.contributionType,
+    contribPercent: state.contribPercent,
+    contribAmount: state.contribAmount,
+    salaryIncrease: state.salaryIncrease,
+    employerPercent: state.employerPercent,
+    externalSippMonthlyNet: state.externalSippMonthlyNet,
+    userTaxBand: state.userTaxBand,
+    inflationRate: state.inflationRate,
+    growthRate: state.growthRate,
+    feeRate: state.feeRate,
+    takeLumpSum: state.takeLumpSum,
+    lumpSumPercent: state.lumpSumPercent,
+    drawdownRate: state.drawdownRate,
+    drawdownStrategy: state.drawdownStrategy,
+    includeStatePension: state.includeStatePension,
+    statePensionAnnual: state.statePensionAnnual,
+    statePensionAge: state.statePensionAge,
+    frequency: state.frequency,
+    viewMode: state.viewMode
+  };
+}
+
+function applyDataToState(data) {
+  Object.keys(data).forEach(key => {
+    if (key in state) {
+      state[key] = data[key];
+    }
+  });
+  isProfileModified = false;
+  syncAllInputElements();
+  recalculate();
+}
+
+function refreshProfileDropdown() {
+  if (!elements.profileSelect) return;
+  const profiles = getAllProfiles();
+  const names = Object.keys(profiles);
+
+  elements.profileSelect.innerHTML = '';
+  
+  const scratchOpt = document.createElement('option');
+  scratchOpt.value = '';
+  scratchOpt.textContent = '-- Scratch / Unsaved --';
+  elements.profileSelect.appendChild(scratchOpt);
+
+  names.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    elements.profileSelect.appendChild(opt);
+  });
+
+  elements.profileSelect.value = currentProfileName || '';
+  updateProfileBadge(isProfileModified);
+}
+
+function updateProfileBadge(modified = false) {
+  if (!elements.profileStatusBadge || !elements.profileStatusText) return;
+  if (currentProfileName) {
+    if (modified) {
+      elements.profileStatusText.textContent = `${currentProfileName} (Modified)`;
+      elements.profileStatusBadge.className = 'active-profile-indicator unsaved';
+    } else {
+      elements.profileStatusText.textContent = currentProfileName;
+      elements.profileStatusBadge.className = 'active-profile-indicator saved';
+    }
+    if (elements.btnProfileDelete) elements.btnProfileDelete.style.display = 'inline-flex';
+  } else {
+    elements.profileStatusText.textContent = 'Scratch / Unsaved';
+    elements.profileStatusBadge.className = 'active-profile-indicator unsaved';
+    if (elements.btnProfileDelete) elements.btnProfileDelete.style.display = 'none';
+  }
+}
+
+let modalTargetMode = 'save'; // 'save' or 'saveAs'
+
+function openProfileModal(mode = 'save') {
+  modalTargetMode = mode;
+  if (!elements.profileModalOverlay) return;
+  elements.modalTitle.textContent = mode === 'saveAs' ? 'Save Profile As' : 'Save Profile';
+  elements.profileNameInput.value = (mode === 'saveAs' && currentProfileName) ? `${currentProfileName} (Copy)` : (currentProfileName || '');
+  elements.modalError.style.display = 'none';
+  elements.modalError.textContent = '';
+  elements.profileModalOverlay.style.display = 'flex';
+  setTimeout(() => elements.profileNameInput.focus(), 60);
+}
+
+function closeProfileModal() {
+  if (elements.profileModalOverlay) {
+    elements.profileModalOverlay.style.display = 'none';
+  }
+}
+
+function markProfileModified() {
+  if (currentProfileName && !isProfileModified) {
+    isProfileModified = true;
+    updateProfileBadge(true);
+  }
+}
 
 /**
  * Synchronize slider and number input pair
@@ -213,6 +453,7 @@ function bindSliderAndNumber(slider, numInput, labelEl, stateKey, suffix = '%', 
     numInput.value = numeric;
     if (labelEl) labelEl.textContent = `${numeric}${suffix}`;
     state[stateKey] = numeric;
+    markProfileModified();
     recalculate();
   };
 
@@ -245,12 +486,14 @@ function setupEventListeners() {
   // Current Pot
   elements.currentPot.addEventListener('input', (e) => {
     state.currentPot = Math.max(0, parseFloat(e.target.value) || 0);
+    markProfileModified();
     recalculate();
   });
 
   // Salary
   elements.annualSalary.addEventListener('input', (e) => {
     state.annualSalary = Math.max(0, parseFloat(e.target.value) || 0);
+    markProfileModified();
     updateContributionHelpers();
     recalculate();
   });
@@ -262,6 +505,7 @@ function setupEventListeners() {
     elements.btnModeAmount.classList.remove('active');
     elements.groupContribPercent.style.display = 'block';
     elements.groupContribAmount.style.display = 'none';
+    markProfileModified();
     updateContributionHelpers();
     recalculate();
   });
@@ -272,6 +516,7 @@ function setupEventListeners() {
     elements.btnModePercent.classList.remove('active');
     elements.groupContribPercent.style.display = 'none';
     elements.groupContribAmount.style.display = 'block';
+    markProfileModified();
     updateContributionHelpers();
     recalculate();
   });
@@ -284,6 +529,7 @@ function setupEventListeners() {
   // Contrib Amount
   elements.contribAmount.addEventListener('input', (e) => {
     state.contribAmount = Math.max(0, parseFloat(e.target.value) || 0);
+    markProfileModified();
     updateContributionHelpers();
     recalculate();
   });
@@ -301,6 +547,7 @@ function setupEventListeners() {
   if (elements.userTaxBand) {
     elements.userTaxBand.addEventListener('change', (e) => {
       state.userTaxBand = e.target.value;
+      markProfileModified();
       updateSippTaxReliefHelpers();
       recalculate();
     });
@@ -315,6 +562,7 @@ function setupEventListeners() {
   elements.takeLumpSum.addEventListener('change', (e) => {
     state.takeLumpSum = e.target.checked;
     elements.lumpSumSliderWrap.style.display = state.takeLumpSum ? 'block' : 'none';
+    markProfileModified();
     recalculate();
   });
 
@@ -325,11 +573,13 @@ function setupEventListeners() {
   elements.includeStatePension.addEventListener('change', (e) => {
     state.includeStatePension = e.target.checked;
     elements.statePensionWrap.style.display = state.includeStatePension ? 'block' : 'none';
+    markProfileModified();
     recalculate();
   });
 
   elements.statePensionAnnual.addEventListener('input', (e) => {
     state.statePensionAnnual = Math.max(0, parseFloat(e.target.value) || 0);
+    markProfileModified();
     recalculate();
   });
 
@@ -341,6 +591,7 @@ function setupEventListeners() {
       state.drawdownStrategy = 'percentOfPot';
       elements.btnDrawStratPct.classList.add('active');
       elements.btnDrawStratFlat.classList.remove('active');
+      markProfileModified();
       recalculate();
     });
   }
@@ -349,6 +600,7 @@ function setupEventListeners() {
       state.drawdownStrategy = 'flatReal';
       elements.btnDrawStratFlat.classList.add('active');
       elements.btnDrawStratPct.classList.remove('active');
+      markProfileModified();
       recalculate();
     });
   }
@@ -402,8 +654,113 @@ function setupEventListeners() {
       elements.presetButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       applyPreset(btn.dataset.preset);
+      markProfileModified();
     });
   });
+
+  // Profile Management Listeners
+  if (elements.btnProfileSave) {
+    elements.btnProfileSave.addEventListener('click', () => {
+      if (currentProfileName) {
+        // If editing an already saved profile, just override it!
+        const profiles = getAllProfiles();
+        profiles[currentProfileName] = extractCurrentStateData();
+        saveAllProfiles(profiles);
+        isProfileModified = false;
+        updateProfileBadge(false);
+        showToast(`Profile "${currentProfileName}" saved!`);
+      } else {
+        openProfileModal('save');
+      }
+    });
+  }
+
+  if (elements.btnProfileSaveAs) {
+    elements.btnProfileSaveAs.addEventListener('click', () => {
+      openProfileModal('saveAs');
+    });
+  }
+
+  if (elements.btnProfileScratch) {
+    elements.btnProfileScratch.addEventListener('click', () => {
+      currentProfileName = null;
+      isProfileModified = false;
+      applyDataToState(SCRATCH_PROFILE);
+      refreshProfileDropdown();
+      showToast('Started fresh from scratch');
+    });
+  }
+
+  if (elements.btnProfileDelete) {
+    elements.btnProfileDelete.addEventListener('click', () => {
+      if (!currentProfileName) return;
+      if (confirm(`Are you sure you want to delete profile "${currentProfileName}"?`)) {
+        const deletedName = currentProfileName;
+        const profiles = getAllProfiles();
+        delete profiles[deletedName];
+        saveAllProfiles(profiles);
+        currentProfileName = null;
+        isProfileModified = false;
+        refreshProfileDropdown();
+        showToast(`Profile "${deletedName}" deleted`);
+      }
+    });
+  }
+
+  if (elements.profileSelect) {
+    elements.profileSelect.addEventListener('change', (e) => {
+      const selected = e.target.value;
+      if (!selected) {
+        currentProfileName = null;
+        isProfileModified = false;
+        updateProfileBadge(false);
+        showToast('Switched to Scratch / Unsaved mode');
+        return;
+      }
+      const profiles = getAllProfiles();
+      if (profiles[selected]) {
+        currentProfileName = selected;
+        isProfileModified = false;
+        applyDataToState(profiles[selected]);
+        showToast(`Loaded profile "${selected}"`);
+      }
+    });
+  }
+
+  // Profile Modal Form Handlers
+  if (elements.profileModalForm) {
+    elements.profileModalForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = elements.profileNameInput.value.trim();
+      if (!name) {
+        if (elements.modalError) {
+          elements.modalError.textContent = 'Please enter a valid profile name.';
+          elements.modalError.style.display = 'block';
+        }
+        return;
+      }
+      const profiles = getAllProfiles();
+      profiles[name] = extractCurrentStateData();
+      saveAllProfiles(profiles);
+      currentProfileName = name;
+      isProfileModified = false;
+      closeProfileModal();
+      refreshProfileDropdown();
+      showToast(`Profile "${name}" saved!`);
+    });
+  }
+
+  if (elements.btnModalClose) {
+    elements.btnModalClose.addEventListener('click', closeProfileModal);
+  }
+  if (elements.btnModalCancel) {
+    elements.btnModalCancel.addEventListener('click', closeProfileModal);
+  }
+  if (elements.profileModalOverlay) {
+    elements.profileModalOverlay.addEventListener('click', (e) => {
+      if (e.target === elements.profileModalOverlay) closeProfileModal();
+    });
+  }
 }
 
 function setScheduleFilter(filter) {
@@ -1000,9 +1357,22 @@ function exportToCSV() {
   URL.revokeObjectURL(url);
 }
 
+function initProfiles() {
+  const profiles = getAllProfiles();
+  const keys = Object.keys(profiles);
+  if (keys.length > 0) {
+    currentProfileName = keys[0];
+    applyDataToState(profiles[currentProfileName]);
+  } else {
+    currentProfileName = null;
+    syncAllInputElements();
+    recalculate();
+  }
+  refreshProfileDropdown();
+}
+
 // Initialise Application on load
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
-  syncAllInputElements();
-  recalculate();
+  initProfiles();
 });
