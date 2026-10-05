@@ -428,6 +428,46 @@
             </div>
           </div>
 
+          <!-- Retirement Age Explorer Slider -->
+          <div class="hero-age-explorer">
+            <div class="hero-age-header">
+              <div class="hero-age-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>Viewing Retirement Income at:</span>
+                <span class="hero-age-pill" id="hero-view-age-pill">
+                  Age <strong id="hero-view-age-display">67</strong>
+                </span>
+                <span class="hero-age-subtext" id="hero-view-year-display">(Year 1 of Retirement)</span>
+              </div>
+              <div class="hero-age-quick-btns">
+                <button type="button" class="hero-quick-btn active" id="btn-hero-age-start" data-age="start">Start (<span id="btn-hero-start-label">67</span>)</button>
+                <button type="button" class="hero-quick-btn" id="btn-hero-age-75" data-age="75">Age 75</button>
+                <button type="button" class="hero-quick-btn" id="btn-hero-age-85" data-age="85">Age 85</button>
+                <button type="button" class="hero-quick-btn" id="btn-hero-age-100" data-age="100">Age 100</button>
+              </div>
+            </div>
+
+            <div class="hero-slider-row">
+              <span class="hero-slider-bound" id="hero-slider-start-label">67</span>
+              <div class="hero-slider-track-wrap">
+                <input type="range" id="heroAgeSlider" min="67" max="100" value="67" step="1" class="hero-age-slider" aria-label="Retirement Age Explorer Slider">
+              </div>
+              <span class="hero-slider-bound">100</span>
+            </div>
+
+            <!-- Distribution Ratio Bar: Private (Emerald) vs Public State Pension (Purple) -->
+            <div class="hero-dist-bar-container" title="Income Distribution Ratio">
+              <div class="hero-dist-segment private" id="hero-dist-bar-private" style="width: 38%;">
+                <span id="hero-dist-label-private">Private 38%</span>
+              </div>
+              <div class="hero-dist-segment public" id="hero-dist-bar-public" style="width: 62%;">
+                <span id="hero-dist-label-public">Public 62%</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Monthly Source Breakdown: Private Pot vs Public State Pension -->
           <div class="hero-split-container">
             <div class="hero-split-item private">

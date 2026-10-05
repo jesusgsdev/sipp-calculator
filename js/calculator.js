@@ -243,8 +243,13 @@ export function calculatePensionForecast(params) {
     fullTimeline[retirementPointIndex].isRetirementTransition = true;
     fullTimeline[retirementPointIndex].potDrawdownReal = annualPotIncomeReal;
     fullTimeline[retirementPointIndex].potDrawdownNominal = annualPotIncomeNominal;
+    fullTimeline[retirementPointIndex].statePensionReal = isEligibleForStatePension ? annualStatePensionReal : 0;
+    fullTimeline[retirementPointIndex].statePensionNominal = isEligibleForStatePension ? annualStatePensionNominal : 0;
+    fullTimeline[retirementPointIndex].statePensionActive = isEligibleForStatePension;
     fullTimeline[retirementPointIndex].totalSalaryReal = annualPotIncomeReal + (isEligibleForStatePension ? annualStatePensionReal : 0);
     fullTimeline[retirementPointIndex].totalSalaryNominal = annualPotIncomeNominal + (isEligibleForStatePension ? annualStatePensionNominal : 0);
+    fullTimeline[retirementPointIndex].totalIncomeReal = fullTimeline[retirementPointIndex].totalSalaryReal;
+    fullTimeline[retirementPointIndex].totalIncomeNominal = fullTimeline[retirementPointIndex].totalSalaryNominal;
     fullTimeline[retirementPointIndex].privateDropPercent = 0;
   }
 

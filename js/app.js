@@ -37,7 +37,8 @@ const state = {
   // View preferences
   frequency: 'monthly', // 'monthly' or 'annual'
   viewMode: 'sidebyside', // 'sidebyside', 'real', 'nominal'
-  scheduleFilter: 'all' // 'all', 'accum', 'draw'
+  scheduleFilter: 'all', // 'all', 'accum', 'draw'
+  viewingRetirementAge: null // null defaults to retirementAge
 };
 
 // Formatter Helpers
@@ -132,6 +133,20 @@ const elements = {
   heroIncomeSub: document.getElementById('hero-income-sub'),
   heroIncomeNominal: document.getElementById('hero-income-nominal'),
   heroInflationNote: document.getElementById('hero-inflation-note'),
+  // Hero Age Explorer Slider & Ratio Bar
+  heroAgeSlider: document.getElementById('heroAgeSlider'),
+  heroViewAgeDisplay: document.getElementById('hero-view-age-display'),
+  heroViewYearDisplay: document.getElementById('hero-view-year-display'),
+  heroSliderStartLabel: document.getElementById('hero-slider-start-label'),
+  btnHeroStartLabel: document.getElementById('btn-hero-start-label'),
+  btnHeroAgeStart: document.getElementById('btn-hero-age-start'),
+  btnHeroAge75: document.getElementById('btn-hero-age-75'),
+  btnHeroAge85: document.getElementById('btn-hero-age-85'),
+  btnHeroAge100: document.getElementById('btn-hero-age-100'),
+  heroDistBarPrivate: document.getElementById('hero-dist-bar-private'),
+  heroDistBarPublic: document.getElementById('hero-dist-bar-public'),
+  heroDistLabelPrivate: document.getElementById('hero-dist-label-private'),
+  heroDistLabelPublic: document.getElementById('hero-dist-label-public'),
   // Monthly Breakdown (Private vs Public)
   heroSplitPrivateReal: document.getElementById('hero-split-private-real'),
   heroSplitPrivateNom: document.getElementById('hero-split-private-nom'),
@@ -761,6 +776,35 @@ function setupEventListeners() {
       if (e.target === elements.profileModalOverlay) closeProfileModal();
     });
   }
+
+  // Hero Retirement Age Explorer Slider Listeners
+  if (elements.heroAgeSlider) {
+    elements.heroAgeSlider.addEventListener('input', (e) => {
+      state.viewingRetirementAge = parseInt(e.target.value, 10);
+      updateHeroCardAtAge(state.viewingRetirementAge);
+    });
+  }
+
+  const handleHeroQuickAge = (targetVal) => {
+    const retireAge = state.retirementAge;
+    const targetAge = targetVal === 'start' ? retireAge : Math.max(retireAge, parseInt(targetVal, 10));
+    state.viewingRetirementAge = targetAge;
+    if (elements.heroAgeSlider) elements.heroAgeSlider.value = targetAge;
+    updateHeroCardAtAge(targetAge);
+  };
+
+  if (elements.btnHeroAgeStart) {
+    elements.btnHeroAgeStart.addEventListener('click', () => handleHeroQuickAge('start'));
+  }
+  if (elements.btnHeroAge75) {
+    elements.btnHeroAge75.addEventListener('click', () => handleHeroQuickAge(75));
+  }
+  if (elements.btnHeroAge85) {
+    elements.btnHeroAge85.addEventListener('click', () => handleHeroQuickAge(85));
+  }
+  if (elements.btnHeroAge100) {
+    elements.btnHeroAge100.addEventListener('click', () => handleHeroQuickAge(100));
+  }
 }
 
 function setScheduleFilter(filter) {
@@ -1044,6 +1088,145 @@ function recalculate() {
 }
 
 /**
+ * Update the Main Hero Card and Distribution Breakdown for a specific retirement age (retirementAge -> 100)
+ */
+function updateHeroCardAtAge(targetAge) {
+  if (!currentForecast) return;
+  const { summary, timeline, inputs } = currentForecast;
+  const isMonthly = state.frequency === 'monthly';
+  const unit = isMonthly ? '/ month' : '/ year';
+  const mult = isMonthly ? 1 / 12 : 1;
+
+  const retireAge = inputs.retirementAge;
+  const validAge = Math.min(100, Math.max(retireAge, targetAge || retireAge));
+  state.viewingRetirementAge = validAge;
+
+  // Sync Slider UI & labels
+  if (elements.heroAgeSlider) {
+    elements.heroAgeSlider.min = retireAge;
+    elements.heroAgeSlider.max = 100;
+    elements.heroAgeSlider.value = validAge;
+  }
+  if (elements.heroSliderStartLabel) {
+    elements.heroSliderStartLabel.textContent = retireAge;
+  }
+  if (elements.btnHeroStartLabel) {
+    elements.btnHeroStartLabel.textContent = retireAge;
+  }
+  if (elements.heroViewAgeDisplay) {
+    elements.heroViewAgeDisplay.textContent = validAge;
+  }
+  if (elements.heroViewYearDisplay) {
+    const yr = validAge - retireAge + 1;
+    elements.heroViewYearDisplay.textContent = validAge === retireAge ? `(Year 1 of Retirement)` : `(Year ${yr} of Retirement)`;
+  }
+
+  // Quick buttons active highlight
+  [elements.btnHeroAgeStart, elements.btnHeroAge75, elements.btnHeroAge85, elements.btnHeroAge100].forEach(btn => {
+    if (!btn) return;
+    const a = btn.dataset.age;
+    if (a === 'start') btn.classList.toggle('active', validAge === retireAge);
+    else btn.classList.toggle('active', validAge === parseInt(a, 10));
+  });
+
+  // Find timeline data point for validAge
+  const point = timeline.find(d => d.age === validAge);
+  if (!point) return;
+
+  const potDrawdownReal = (point.potDrawdownReal || 0) * mult;
+  const potDrawdownNom = (point.potDrawdownNominal || 0) * mult;
+
+  const spReal = (point.statePensionActive ? (point.statePensionReal || 0) : 0) * mult;
+  const spNom = (point.statePensionActive ? (point.statePensionNominal || 0) : 0) * mult;
+
+  const totalReal = potDrawdownReal + spReal;
+  const totalNom = potDrawdownNom + spNom;
+
+  const totalRealCombined = totalReal > 0 ? totalReal : 0.0001;
+  const privateShare = Math.min(100, Math.max(0, (potDrawdownReal / totalRealCombined) * 100));
+  const publicShare = Math.min(100, Math.max(0, (spReal / totalRealCombined) * 100));
+
+  // Hero Card Headlines
+  if (state.viewMode === 'nominal') {
+    elements.heroIncomeMain.textContent = `${formatGBP(totalNom)} ${unit}`;
+    elements.heroIncomeSub.textContent = `Future Value (Nominal £ at Age ${validAge})`;
+    elements.heroIncomeNominal.textContent = `${formatGBP(totalReal)} ${unit}`;
+    elements.heroInflationNote.textContent = `Purchasing power equivalent in today's money`;
+  } else {
+    elements.heroIncomeMain.textContent = `${formatGBP(totalReal)} ${unit}`;
+    elements.heroIncomeSub.textContent = validAge === retireAge
+      ? `In Today's Purchasing Power (Real £)`
+      : `At Age ${validAge} in Today's Purchasing Power (Real £)`;
+    elements.heroIncomeNominal.textContent = `${formatGBP(totalNom)} ${unit}`;
+    const compoundingYrs = validAge - inputs.currentAge;
+    elements.heroInflationNote.textContent = `Future nominal value after ${inputs.inflationRate}% inflation over ${compoundingYrs} yrs`;
+  }
+
+  // Monthly Breakdown (Private Pot vs UK Public State Pension)
+  if (elements.heroSplitPrivateReal) {
+    if (point.isPotDepleted && validAge > inputs.retirementAge && potDrawdownReal <= 0) {
+      elements.heroSplitPrivateReal.innerHTML = `<span class="text-red" style="font-size:1.05rem;">£0 (Pot Depleted)</span>`;
+    } else {
+      elements.heroSplitPrivateReal.textContent = `${formatGBP(potDrawdownReal)} ${unit}`;
+    }
+  }
+  if (elements.heroSplitPrivateNom) {
+    elements.heroSplitPrivateNom.textContent = `Nominal: ${formatGBP(potDrawdownNom)} ${unit}`;
+  }
+  if (elements.heroSplitPrivateShare) {
+    elements.heroSplitPrivateShare.textContent = `${privateShare.toFixed(0)}%`;
+  }
+
+  if (elements.heroSplitPublicReal) {
+    if (!point.statePensionActive) {
+      elements.heroSplitPublicReal.innerHTML = `<span style="color:#cbd5e1; font-size:1.05rem;">£0 (Starts at Age ${inputs.statePensionAge})</span>`;
+    } else {
+      elements.heroSplitPublicReal.textContent = `${formatGBP(spReal)} ${unit}`;
+    }
+  }
+  if (elements.heroSplitPublicNom) {
+    elements.heroSplitPublicNom.textContent = point.statePensionActive ? `Nominal: ${formatGBP(spNom)} ${unit}` : `Starts at age ${inputs.statePensionAge}`;
+  }
+  if (elements.heroSplitPublicShare) {
+    elements.heroSplitPublicShare.textContent = `${publicShare.toFixed(0)}%`;
+  }
+
+  // Visual Distribution Bar
+  if (elements.heroDistBarPrivate && elements.heroDistBarPublic) {
+    elements.heroDistBarPrivate.style.width = `${privateShare}%`;
+    elements.heroDistBarPublic.style.width = `${publicShare}%`;
+  }
+  if (elements.heroDistLabelPrivate) {
+    elements.heroDistLabelPrivate.textContent = privateShare >= 12 ? `Private ${privateShare.toFixed(0)}%` : (privateShare > 0 ? `${privateShare.toFixed(0)}%` : '');
+  }
+  if (elements.heroDistLabelPublic) {
+    elements.heroDistLabelPublic.textContent = publicShare >= 12 ? `Public ${publicShare.toFixed(0)}%` : (publicShare > 0 ? `${publicShare.toFixed(0)}%` : '');
+  }
+
+  // PLSA Living Standard Meter for this age
+  const annualRealAtAge = point.totalIncomeReal || (totalReal * (isMonthly ? 12 : 1));
+  let plsaCategory = 'Below Minimum';
+  const standards = UK_DEFAULTS.PLSA_STANDARDS;
+  if (annualRealAtAge >= standards.comfortable) {
+    plsaCategory = 'Comfortable';
+  } else if (annualRealAtAge >= standards.moderate) {
+    plsaCategory = 'Moderate';
+  } else if (annualRealAtAge >= standards.minimum) {
+    plsaCategory = 'Minimum';
+  }
+
+  elements.plsaBadge.textContent = `${plsaCategory} Standard`;
+  elements.plsaBadge.className = 'badge-plsa';
+  if (plsaCategory === 'Comfortable') elements.plsaBadge.classList.add('comfortable');
+  else if (plsaCategory === 'Moderate') elements.plsaBadge.classList.add('moderate');
+  else if (plsaCategory === 'Minimum') elements.plsaBadge.classList.add('minimum');
+  else elements.plsaBadge.classList.add('below');
+
+  const progressPct = Math.min(100, Math.max(5, (annualRealAtAge / (standards.comfortable * 1.25)) * 100));
+  elements.plsaProgressBar.style.width = `${progressPct}%`;
+}
+
+/**
  * Update DOM Results and Charts
  */
 function updateResultsUI() {
@@ -1053,67 +1236,14 @@ function updateResultsUI() {
   const unit = isMonthly ? '/ month' : '/ year';
   const mult = isMonthly ? 1 / 12 : 1;
 
-  // Hero Card Values
-  const realIncomeVal = summary.fullCombinedAnnualReal * mult;
-  const nominalIncomeVal = summary.fullCombinedAnnualNominal * mult;
+  // Update Hero Card at viewing age
+  const viewingAge = state.viewingRetirementAge || inputs.retirementAge;
+  updateHeroCardAtAge(viewingAge);
 
-  if (state.viewMode === 'nominal') {
-    elements.heroIncomeMain.textContent = `${formatGBP(nominalIncomeVal)} ${unit}`;
-    elements.heroIncomeSub.textContent = `Future Value (Nominal £ in retirement year)`;
-    elements.heroIncomeNominal.textContent = `${formatGBP(realIncomeVal)} ${unit}`;
-    elements.heroInflationNote.textContent = `Purchasing power equivalent in today's money`;
-  } else {
-    elements.heroIncomeMain.textContent = `${formatGBP(realIncomeVal)} ${unit}`;
-    elements.heroIncomeSub.textContent = `In Today's Purchasing Power (Real £)`;
-    elements.heroIncomeNominal.textContent = `${formatGBP(nominalIncomeVal)} ${unit}`;
-    elements.heroInflationNote.textContent = `Future nominal value after ${inputs.inflationRate}% inflation over ${summary.yearsToRetire} yrs`;
-  }
-
-  // Monthly / Annual Source Breakdown (Private Pot vs UK Public State Pension)
   const potIncomeValReal = (isMonthly ? summary.potIncomeMonthlyReal : summary.potIncomeAnnualReal);
   const potIncomeValNom = (isMonthly ? summary.potIncomeMonthlyNominal : summary.potIncomeAnnualNominal);
-
   const spIncomeValReal = (isMonthly ? summary.statePensionMonthlyReal : summary.statePensionAnnualReal);
   const spIncomeValNom = (isMonthly ? summary.statePensionMonthlyNominal : summary.statePensionAnnualNominal);
-
-  if (elements.heroSplitPrivateReal) {
-    elements.heroSplitPrivateReal.textContent = `${formatGBP(potIncomeValReal)} ${unit}`;
-  }
-  if (elements.heroSplitPrivateNom) {
-    elements.heroSplitPrivateNom.textContent = `Nominal: ${formatGBP(potIncomeValNom)} ${unit}`;
-  }
-  if (elements.heroSplitPrivateShare) {
-    elements.heroSplitPrivateShare.textContent = `${summary.privateSharePercent.toFixed(0)}%`;
-  }
-
-  if (elements.heroSplitPublicReal) {
-    elements.heroSplitPublicReal.textContent = `${formatGBP(spIncomeValReal)} ${unit}`;
-  }
-  if (elements.heroSplitPublicNom) {
-    elements.heroSplitPublicNom.textContent = `Nominal: ${formatGBP(spIncomeValNom)} ${unit}`;
-  }
-  if (elements.heroSplitPublicShare) {
-    elements.heroSplitPublicShare.textContent = `${summary.publicSharePercent.toFixed(0)}%`;
-  }
-
-  // PLSA Living Standard Badge & Meter
-  const annualReal = summary.fullCombinedAnnualReal;
-  elements.plsaBadge.textContent = `${summary.plsaCategory} Standard`;
-  elements.plsaBadge.className = 'badge-plsa';
-
-  if (summary.plsaCategory === 'Comfortable') {
-    elements.plsaBadge.classList.add('comfortable');
-  } else if (summary.plsaCategory === 'Moderate') {
-    elements.plsaBadge.classList.add('moderate');
-  } else if (summary.plsaCategory === 'Minimum') {
-    elements.plsaBadge.classList.add('minimum');
-  } else {
-    elements.plsaBadge.classList.add('below');
-  }
-
-  const comfortableTarget = UK_DEFAULTS.PLSA_STANDARDS.comfortable;
-  const progressPct = Math.min(100, Math.max(5, (annualReal / (comfortableTarget * 1.25)) * 100));
-  elements.plsaProgressBar.style.width = `${progressPct}%`;
 
   // Metric Cards
   elements.metricPotReal.textContent = formatGBP(summary.potReal);
