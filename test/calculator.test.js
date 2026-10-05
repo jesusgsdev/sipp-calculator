@@ -225,5 +225,42 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   console.log('✓ Test 8 passed: Monthly private vs public pension breakdown verified');
 }
 
+// Test 9: Purchasing power trajectory under percentage drawdown vs Triple-Lock State Pension
+{
+  const res = calculatePensionForecast({
+    currentAge: 35,
+    retirementAge: 65,
+    annualSalary: 60000,
+    contributionType: 'percent',
+    employeeContribution: 6,
+    employerContributionPercent: 4,
+    drawdownRate: 4.0,
+    drawdownStrategy: 'percentOfPot',
+    investmentGrowthRate: 5.5,
+    feeRate: 0.5,
+    inflationRate: 2.5,
+    includeStatePension: true,
+    statePensionAge: 67
+  });
+
+  const retireYears = res.timeline.filter(d => d.age >= 65);
+  assert.ok(retireYears.length > 0, 'Retirement points exist');
+
+  // Verify private pot income in real terms decreases over time under 4% drawdown with net real return ~2.4%
+  const firstYearPrivateReal = retireYears[0].potDrawdownReal;
+  const tenthYearPrivateReal = retireYears[10].potDrawdownReal;
+  assert.ok(tenthYearPrivateReal < firstYearPrivateReal, 'Private drawdown income in real terms decreases over time');
+
+  // Verify State Pension purchasing power in real terms stays exactly flat once active (triple lock)
+  const spPoints = retireYears.filter(d => d.age >= 67);
+  const baselineSPReal = spPoints[0].statePensionReal;
+  for (const pt of spPoints) {
+    assert.equal(pt.statePensionReal, baselineSPReal, 'State Pension real purchasing power is 100% constant');
+  }
+
+  console.log('✓ Test 9 passed: Percentage drawdown real income decrease and triple-lock parity verified');
+}
+
 console.log('ALL TESTS PASSED SUCCESSFULLY! 🎉');
+
 
