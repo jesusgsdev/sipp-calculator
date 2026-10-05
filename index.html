@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UK Pension & SIPP Forecast Calculator | Nominal & Inflation-Adjusted</title>
+  <meta name="description" content="UK pension forecast calculator following UK guidelines. Model workplace pensions and SIPPs, 25% tax-free lump sum drawdown, triple-lock State Pension, and compare nominal vs real inflation-adjusted income.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div>
+          <h1>UK Pension & SIPP Forecaster</h1>
+          <p class="brand-sub">Compliant with UK Pension Guidelines • PCLS 25% Lump Sum • Triple Lock • Inflation Impact</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="btn-export-csv" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button type="button" id="btn-print" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print Report
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-layout">
+    <!-- Presets Bar -->
+    <section class="presets-section" aria-label="Quick Presets">
+      <span class="preset-label">Quick Scenarios:</span>
+      <div class="preset-buttons">
+        <button type="button" class="preset-btn active" data-preset="auto-enrol">Auto-Enrolment (5% + 3%)</button>
+        <button type="button" class="preset-btn" data-preset="booster">Career Booster (10% + 5%)</button>
+        <button type="button" class="preset-btn" data-preset="early-retire">FIRE / Early Age 57</button>
+        <button type="button" class="preset-btn" data-preset="high-inflation">High Inflation Stress Test</button>
+        <button type="button" class="preset-btn" data-preset="no-lump-sum">100% Drawdown (No Lump Sum)</button>
+      </div>
+    </section>
+
+    <div class="calculator-grid">
+      <!-- Left Column: Controls & Inputs -->
+      <aside class="inputs-column" aria-label="Pension Parameters">
+        <form id="pension-form" class="card form-card" onsubmit="event.preventDefault()">
+          
+          <!-- Section 1: Personal Profile -->
+          <div class="form-section">
+            <h2 class="section-title">
+              <span class="section-badge">1</span>
+              Personal Profile
+            </h2>
+
+            <div class="input-group">
+              <div class="label-row">
+                <label for="currentAge">Current Age</label>
+                <span class="value-bubble" id="val-currentAge">30 yrs</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="currentAge" name="currentAge" min="18" max="74" value="30" step="1">
+                <input type="number" id="currentAge-num" min="18" max="74" value="30" class="num-input">
+              </div>
+            </div>
+
+            <div class="input-group">
+              <div class="label-row">
+                <label for="retirementAge">Target Retirement Age</label>
+                <span class="value-bubble" id="val-retirementAge">67 yrs</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="retirementAge" name="retirementAge" min="55" max="80" value="67" step="1">
+                <input type="number" id="retirementAge-num" min="55" max="80" value="67" class="num-input">
+              </div>
+              <div class="field-help" id="years-to-retire-text">37 years of compounding remaining</div>
+            </div>
+
+            <div class="input-group">
+              <div class="label-row">
+                <label for="currentPot">Existing Pension Pot</label>
+                <span class="hint-tag">Workplace + SIPP</span>
+              </div>
+              <div class="currency-input-wrap">
+                <span class="currency-symbol">£</span>
+                <input type="number" id="currentPot" name="currentPot" min="0" step="1000" value="20000" class="text-input">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Salary & Employee Contributions -->
+          <div class="form-section">
+            <h2 class="section-title">
+              <span class="section-badge">2</span>
+              Salary & Contributions
+            </h2>
+
+            <div class="input-group">
+              <div class="label-row">
+                <label for="annualSalary">Current Annual Gross Salary</label>
+              </div>
+              <div class="currency-input-wrap">
+                <span class="currency-symbol">£</span>
+                <input type="number" id="annualSalary" name="annualSalary" min="0" step="1000" value="45000" class="text-input">
+              </div>
+            </div>
+
+            <!-- Contribution Toggle: % vs £ Monthly -->
+            <div class="input-group">
+              <label>Employee Monthly Contribution Mode</label>
+              <div class="toggle-segmented" role="radiogroup" aria-label="Employee Contribution Mode">
+                <button type="button" class="segment-btn active" id="btn-mode-percent" data-mode="percent">% of Annual Salary</button>
+                <button type="button" class="segment-btn" id="btn-mode-amount" data-mode="amount">Fixed Amount (£/month)</button>
+              </div>
+            </div>
+
+            <!-- Dynamic Input Container -->
+            <div class="input-group" id="group-contrib-percent">
+              <div class="label-row">
+                <label for="contribPercent">Employee Contribution (%)</label>
+                <span class="value-bubble" id="val-contribPercent">5.0%</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="contribPercent" min="0" max="50" value="5" step="0.5">
+                <input type="number" id="contribPercent-num" min="0" max="50" value="5" step="0.5" class="num-input">
+              </div>
+              <div class="field-help" id="equiv-monthly-text">Equivalent to £187.50 / month</div>
+            </div>
+
+            <div class="input-group" id="group-contrib-amount" style="display: none;">
+              <div class="label-row">
+                <label for="contribAmount">Employee Monthly Contribution (£)</label>
+              </div>
+              <div class="currency-input-wrap">
+                <span class="currency-symbol">£</span>
+                <input type="number" id="contribAmount" min="0" step="25" value="188" class="text-input">
+              </div>
+              <div class="field-help" id="equiv-percent-text">Equivalent to 5.0% of current salary</div>
+            </div>
+
+            <!-- Annual Salary Increase -->
+            <div class="input-group">
+              <div class="label-row">
+                <label for="salaryIncrease">Annual Salary Increase (%)</label>
+                <span class="value-bubble" id="val-salaryIncrease">3.0%</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="salaryIncrease" name="salaryIncrease" min="0" max="10" value="3.0" step="0.25">
+                <input type="number" id="salaryIncrease-num" min="0" max="10" value="3.0" step="0.25" class="num-input">
+              </div>
+              <div class="field-help">Estimated yearly wage growth throughout career</div>
+            </div>
+
+            <!-- Employer Contribution -->
+            <div class="input-group">
+              <div class="label-row">
+                <label for="employerPercent">Employer Contribution (%)</label>
+                <span class="value-bubble" id="val-employerPercent">3.0%</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="employerPercent" name="employerPercent" min="0" max="25" value="3.0" step="0.5">
+                <input type="number" id="employerPercent-num" min="0" max="25" value="3.0" step="0.5" class="num-input">
+              </div>
+              <div class="field-help">UK statutory auto-enrolment minimum is 3%</div>
+            </div>
+
+            <!-- External Personal SIPP with HMRC Tax Relief -->
+            <div class="card-nested" style="margin-top: 14px; background: #f0fdf4; border-color: #bbf7d0;">
+              <div class="label-row">
+                <label for="externalSippMonthlyNet" style="color: #166534;">
+                  <strong>External Personal SIPP (Net £/month)</strong>
+                </label>
+                <span class="value-bubble" style="background:#dcfce7; color:#15803d;" id="val-externalSippNet">£200/mo</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="externalSippMonthlyNet" min="0" max="2500" value="200" step="25">
+                <input type="number" id="externalSippMonthlyNet-num" min="0" max="10000" value="200" class="num-input">
+              </div>
+              <div class="field-help" style="color:#166534;">Paid from net take-home pay (HMRC adds tax relief directly into SIPP)</div>
+
+              <!-- HMRC Tax Relief Breakdown Box -->
+              <div class="sipp-tax-relief-box">
+                <div class="sipp-breakdown-row">
+                  <span>Net Paid by You:</span>
+                  <strong id="sipp-net-label">£200 / mo (£2,400/yr)</strong>
+                </div>
+                <div class="sipp-breakdown-row" style="color: #059669;">
+                  <span>HMRC Basic Rate Relief (+25%):</span>
+                  <strong id="sipp-hmrc-label">+£50 / mo (+£600/yr)</strong>
+                </div>
+                <div class="sipp-breakdown-row total">
+                  <span>Total Gross Invested in SIPP:</span>
+                  <strong id="sipp-gross-label">£250 / mo (£3,000/yr)</strong>
+                </div>
+                <div class="tax-band-row">
+                  <label for="userTaxBand" style="font-size:0.75rem; color:#475569;">Your UK Tax Band:</label>
+                  <select id="userTaxBand" class="tax-band-select">
+                    <option value="basic" selected>Basic Rate (20%)</option>
+                    <option value="higher">Higher Rate (40%)</option>
+                    <option value="additional">Additional Rate (45%)</option>
+                  </select>
+                </div>
+                <div class="field-help" id="sipp-extra-relief-text" style="display:none; color:#0369a1; font-weight:600; margin-top:4px;">
+                  Claim an extra £50/mo (£600/yr) back via Self Assessment!
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Inflation & Growth -->
+          <div class="form-section">
+            <h2 class="section-title">
+              <span class="section-badge">3</span>
+              Inflation & Market Returns
+            </h2>
+
+            <div class="input-group highlight-box">
+              <div class="label-row">
+                <label for="inflationRate" class="font-semibold">Expected Annual Inflation (%)</label>
+                <span class="value-bubble alert" id="val-inflationRate">2.5%</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="inflationRate" name="inflationRate" min="0" max="8" value="2.5" step="0.25">
+                <input type="number" id="inflationRate-num" min="0" max="8" value="2.5" step="0.25" class="num-input">
+              </div>
+              <div class="field-help">Used to calculate the equivalent purchasing power ("Today's Money")</div>
+            </div>
+
+            <div class="input-group">
+              <div class="label-row">
+                <label for="growthRate">Nominal Investment Return (%)</label>
+                <span class="value-bubble" id="val-growthRate">6.0%</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="growthRate" name="growthRate" min="1" max="12" value="6.0" step="0.25">
+                <input type="number" id="growthRate-num" min="1" max="12" value="6.0" step="0.25" class="num-input">
+              </div>
+              <div class="field-help">Gross annual portfolio return before fees & inflation</div>
+            </div>
+
+            <div class="input-group">
+              <div class="label-row">
+                <label for="feeRate">Annual Platform & Fund Fees (%)</label>
+                <span class="value-bubble" id="val-feeRate">0.5%</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="feeRate" name="feeRate" min="0" max="2.5" value="0.5" step="0.05">
+                <input type="number" id="feeRate-num" min="0" max="2.5" value="0.5" step="0.05" class="num-input">
+              </div>
+              <div class="field-summary-tag" id="net-real-return-tag">Net Real Return: ~3.0% / yr</div>
+            </div>
+          </div>
+
+          <!-- Section 4: Drawdown & Lump Sum Strategy -->
+          <div class="form-section">
+            <h2 class="section-title">
+              <span class="section-badge">4</span>
+              Drawdown & UK Public Pension
+            </h2>
+
+            <!-- 25% Tax Free Lump Sum -->
+            <div class="card-nested">
+              <div class="checkbox-row">
+                <label class="switch-container">
+                  <input type="checkbox" id="takeLumpSum" checked>
+                  <span class="switch-slider"></span>
+                </label>
+                <label for="takeLumpSum" class="switch-label">
+                  <strong>Take 25% Tax-Free Lump Sum (PCLS)</strong>
+                  <span class="sub-label">UK Pension Commencement Lump Sum (up to £268,275 cap)</span>
+                </label>
+              </div>
+
+              <div id="lump-sum-slider-wrap" class="nested-content">
+                <div class="label-row">
+                  <label for="lumpSumPercent">Lump Sum Percentage</label>
+                  <span class="value-bubble" id="val-lumpSumPercent">25%</span>
+                </div>
+                <div class="slider-input-combo">
+                  <input type="range" id="lumpSumPercent" min="0" max="25" value="25" step="1">
+                  <input type="number" id="lumpSumPercent-num" min="0" max="25" value="25" class="num-input">
+                </div>
+                <div class="field-help">Statutory UK tax-free maximum is 25%</div>
+              </div>
+            </div>
+
+            <!-- Drawdown Rate -->
+            <div class="input-group" style="margin-top: 14px;">
+              <div class="label-row">
+                <label for="drawdownRate">Pot Annual Drawdown Rate (%)</label>
+                <span class="value-bubble" id="val-drawdownRate">4.0%</span>
+              </div>
+              <div class="slider-input-combo">
+                <input type="range" id="drawdownRate" name="drawdownRate" min="2.5" max="8" value="4.0" step="0.25">
+                <input type="number" id="drawdownRate-num" min="2.5" max="8" value="4.0" step="0.25" class="num-input">
+              </div>
+              <div class="field-help">Standard UK retirement withdrawal rate (4% rule)</div>
+            </div>
+
+            <!-- Public State Pension -->
+            <div class="card-nested" style="margin-top: 14px;">
+              <div class="checkbox-row">
+                <label class="switch-container">
+                  <input type="checkbox" id="includeStatePension" checked>
+                  <span class="switch-slider"></span>
+                </label>
+                <label for="includeStatePension" class="switch-label">
+                  <strong>Include UK Public State Pension</strong>
+                  <span class="sub-label">Triple-lock: grows at inflation rate selected</span>
+                </label>
+              </div>
+
+              <div id="state-pension-wrap" class="nested-content">
+                <div class="input-group" style="margin-bottom: 10px;">
+                  <div class="label-row">
+                    <label for="statePensionAnnual">Full State Pension (Today's £ / yr)</label>
+                  </div>
+                  <div class="currency-input-wrap">
+                    <span class="currency-symbol">£</span>
+                    <input type="number" id="statePensionAnnual" step="50" value="11973" class="text-input">
+                  </div>
+                  <div class="field-help">2025/26 full rate: £230.25/week (~£11,973/yr)</div>
+                </div>
+
+                <div class="input-group">
+                  <div class="label-row">
+                    <label for="statePensionAge">State Pension Eligibility Age</label>
+                    <span class="value-bubble" id="val-statePensionAge">67 yrs</span>
+                  </div>
+                  <div class="slider-input-combo">
+                    <input type="range" id="statePensionAge" min="66" max="70" value="67" step="1">
+                    <input type="number" id="statePensionAge-num" min="66" max="70" value="67" class="num-input">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </form>
+      </aside>
+
+      <!-- Right Column: Forecast Results & Visualizations -->
+      <section class="results-column" aria-label="Pension Forecast Results">
+        
+        <!-- Output View Selector & Timeframe Controls -->
+        <div class="card toolbar-card">
+          <div class="toolbar-section">
+            <span class="toolbar-title">Display Frequency:</span>
+            <div class="toggle-segmented" role="radiogroup" aria-label="Frequency">
+              <button type="button" class="segment-btn active" id="btn-freq-monthly" data-freq="monthly">Monthly (£/mo)</button>
+              <button type="button" class="segment-btn" id="btn-freq-annual" data-freq="annual">Yearly (£/yr)</button>
+            </div>
+          </div>
+          <div class="toolbar-section">
+            <span class="toolbar-title">Value Mode:</span>
+            <div class="toggle-segmented" role="radiogroup" aria-label="Display Mode">
+              <button type="button" class="segment-btn active" id="btn-mode-sidebyside" data-view="sidebyside">Side-by-Side</button>
+              <button type="button" class="segment-btn" id="btn-mode-real" data-view="real">Today's Money (Real)</button>
+              <button type="button" class="segment-btn" id="btn-mode-nominal" data-view="nominal">Future £ (Nominal)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Headline Card: Total Retirement Income -->
+        <div class="card hero-income-card">
+          <div class="hero-header">
+            <div>
+              <span class="hero-tag">Total Projected Retirement Income</span>
+              <h2 class="hero-title" id="hero-income-main">£1,609 / month</h2>
+              <p class="hero-sub" id="hero-income-sub">In Today's Purchasing Power (Real £)</p>
+            </div>
+            <div class="hero-comparison-badge">
+              <span class="badge-label">Equivalent Future Nominal Value:</span>
+              <span class="badge-value" id="hero-income-nominal">£4,011 / month</span>
+              <span class="badge-info" id="hero-inflation-note">Deflated by 2.5% inflation over 37 yrs</span>
+            </div>
+          </div>
+
+          <!-- Monthly Source Breakdown: Private Pot vs Public State Pension -->
+          <div class="hero-split-container">
+            <div class="hero-split-item private">
+              <div class="split-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>
+              </div>
+              <div class="split-details">
+                <span class="split-title">Private Pension Pot</span>
+                <div class="split-amount-real" id="hero-split-private-real">£611 / month</div>
+                <span class="split-amount-nom" id="hero-split-private-nom">Nominal: £1,523 / mo</span>
+              </div>
+              <span class="split-percent-tag" id="hero-split-private-share">38%</span>
+            </div>
+
+            <div class="hero-split-plus">+</div>
+
+            <div class="hero-split-item public">
+              <div class="split-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 2l10 5H2l10-5z"/></svg>
+              </div>
+              <div class="split-details">
+                <span class="split-title">UK Public State Pension</span>
+                <div class="split-amount-real" id="hero-split-public-real">£998 / month</div>
+                <span class="split-amount-nom" id="hero-split-public-nom">Nominal: £2,488 / mo</span>
+              </div>
+              <span class="split-percent-tag" id="hero-split-public-share">62%</span>
+            </div>
+          </div>
+
+          <!-- PLSA Living Standard Meter -->
+          <div class="plsa-meter-container">
+            <div class="plsa-labels">
+              <span>UK Retirement Living Standard:</span>
+              <strong id="plsa-badge" class="badge-plsa moderate">Moderate Standard</strong>
+            </div>
+            <div class="plsa-bar-track">
+              <div class="plsa-threshold" style="left: 33%;" title="Minimum: £14,400/yr"></div>
+              <div class="plsa-threshold" style="left: 72%;" title="Moderate: £31,300/yr"></div>
+              <div class="plsa-progress" id="plsa-progress-bar" style="width: 44%;"></div>
+            </div>
+            <div class="plsa-scale-legend">
+              <span>Minimum (£14.4k)</span>
+              <span>Moderate (£31.3k)</span>
+              <span>Comfortable (£43.1k+)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric Grid Cards -->
+        <div class="metric-grid">
+          <!-- Card 1: Total Accumulated Pot -->
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Total Pension Pot</span>
+              <span class="metric-icon pot-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-primary-val" id="metric-pot-real">£244,350</div>
+              <div class="metric-label-real">In Today's Money</div>
+              <div class="metric-secondary-row">
+                <span>Future Value (Nominal):</span>
+                <strong id="metric-pot-nominal">£609,251</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: 25% Tax-Free Lump Sum -->
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span class="metric-title">25% Tax-Free Lump Sum</span>
+              <span class="metric-icon tax-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-primary-val" id="metric-lump-real">£61,088</div>
+              <div class="metric-label-real">In Today's Money (Tax-Free)</div>
+              <div class="metric-secondary-row">
+                <span>Future Value (Nominal):</span>
+                <strong id="metric-lump-nominal">£152,313</strong>
+              </div>
+              <div id="lump-capped-note" class="metric-tag warning" style="display: none;">Capped at UK £268,275 Limit</div>
+            </div>
+          </div>
+
+          <!-- Card 3: Remaining Pot for Drawdown -->
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Remaining Invested Pot</span>
+              <span class="metric-icon invest-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-primary-val" id="metric-rem-real">£183,263</div>
+              <div class="metric-label-real">In Today's Money</div>
+              <div class="metric-secondary-row">
+                <span>Future Value (Nominal):</span>
+                <strong id="metric-rem-nominal">£456,938</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Pot Drawdown Income -->
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Pot Drawdown Income</span>
+              <span class="metric-icon income-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-primary-val" id="metric-potinc-real">£611 / mo</div>
+              <div class="metric-label-real">In Today's Money</div>
+              <div class="metric-secondary-row">
+                <span>Future Value (Nominal):</span>
+                <strong id="metric-potinc-nominal">£1,523 / mo</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 5: UK State Pension -->
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span class="metric-title">UK State Pension</span>
+              <span class="metric-icon state-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 2l10 5H2l10-5z"/></svg>
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-primary-val" id="metric-sp-real">£998 / mo</div>
+              <div class="metric-label-real">In Today's Money (Triple-Lock)</div>
+              <div class="metric-secondary-row">
+                <span>Future Value (Nominal):</span>
+                <strong id="metric-sp-nominal">£2,488 / mo</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 6: Replacement Rate -->
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Income Replacement Rate</span>
+              <span class="metric-icon percent-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-primary-val" id="metric-replacement-rate">43%</div>
+              <div class="metric-label-real">Of Final Pre-Retirement Salary</div>
+              <div class="metric-secondary-row">
+                <span>Final Salary (Nominal):</span>
+                <strong id="metric-final-salary">£134,997</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 7: Pot Balance at Age 100 & Longevity -->
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Pot Balance at Age 100</span>
+              <span class="metric-icon age100-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-primary-val" id="metric-age100-real">£83,310</div>
+              <div class="metric-label-real" id="metric-age100-status">In Today's Money (Sustained)</div>
+              <div class="metric-secondary-row">
+                <span>Future Value (Nominal):</span>
+                <strong id="metric-age100-nominal">£469,208</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Charts Section -->
+        <div class="card chart-card">
+          <div class="card-header-flex">
+            <div>
+              <h3 class="card-heading" id="chart-growth-title">Pension Pot & Drawdown Trajectory (to Age 100)</h3>
+              <p class="card-subheading">Model accumulation up to retirement, 25% tax-free lump sum drop, and pot longevity under ongoing drawdown</p>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-color nominal"></span> Future Nominal Pot</span>
+              <span class="legend-item"><span class="legend-color real"></span> Today's Money (Real)</span>
+              <span class="legend-item"><span class="legend-color contrib"></span> Total Contributions</span>
+              <span class="legend-item"><span class="legend-color sp"></span> State Pension (Triple-Lock)</span>
+            </div>
+          </div>
+          <div id="chart-growth-container" class="chart-wrapper"></div>
+        </div>
+
+        <!-- Purchasing Power Retirement Salary Trajectory Chart (Private vs Public) -->
+        <div class="card chart-card">
+          <div class="card-header-flex">
+            <div>
+              <h3 class="card-heading">Retirement "Salary" in Today's Purchasing Power (Age <span id="purchasing-power-start-age">67</span> to 100)</h3>
+              <p class="card-subheading">Demonstrating how the Triple-Lock Public Pension keeps up 100% with inflation, while a percentage Private Drawdown decreases over the years</p>
+            </div>
+            <div class="schedule-actions-flex">
+              <div class="toggle-segmented" role="radiogroup" aria-label="Drawdown Methodology">
+                <button type="button" class="segment-btn active" id="btn-draw-strat-pct" data-strat="percentOfPot">% of Remaining Pot</button>
+                <button type="button" class="segment-btn" id="btn-draw-strat-flat" data-strat="flatReal">Flat Real Income</button>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-item"><span class="legend-color nominal"></span> Total Combined Salary</span>
+                <span class="legend-item"><span class="legend-color real"></span> Private Pot Drawdown (Decreasing)</span>
+                <span class="legend-item"><span class="legend-color sp"></span> Public State Pension (Constant)</span>
+              </div>
+            </div>
+          </div>
+          <div id="chart-purchasing-power-container" class="chart-wrapper"></div>
+          <div class="purchasing-power-explainer">
+            <div class="explainer-item public-note">
+              <span class="explainer-bullet" style="background:#8b5cf6;"></span>
+              <div>
+                <strong>Public State Pension Keeps Up 100%</strong>:
+                Protected by the Triple Lock, your State Pension increases in nominal terms at the same rate as inflation. Therefore, in <em>today's purchasing power</em> it stays completely horizontal and flat (<span id="explainer-sp-amount">£11,973 / yr</span>) without losing a single penny of real buying power.
+              </div>
+            </div>
+            <div class="explainer-item private-note">
+              <span class="explainer-bullet" style="background:#10b981;"></span>
+              <div>
+                <strong>Why Percentage Private Drawdown Decreases in Real Terms</strong>:
+                When withdrawing a fixed percentage (e.g. <span id="explainer-drawdown-rate">4.0%</span>) of your remaining pot each year, investment returns after fees (~<span id="explainer-net-real">2.9%</span> real) are lower than the withdrawal rate. This gradually reduces the real pot size, which in turn reduces your monthly private salary in today's money over the years.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-two-col">
+          <!-- Income Comparison Grouped Bar Chart -->
+          <div class="card chart-card">
+            <div class="card-header-flex">
+              <div>
+                <h3 class="card-heading">Retirement Income: Nominal vs Real Comparison</h3>
+                <p class="card-subheading" id="income-chart-subtitle">Direct side-by-side comparison per month</p>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-item"><span class="legend-color nominal"></span> Nominal (Future £)</span>
+                <span class="legend-item"><span class="legend-color real"></span> Real (Today's £)</span>
+              </div>
+            </div>
+            <div id="chart-income-container" class="chart-wrapper"></div>
+          </div>
+
+          <!-- Side-by-side Comparison Matrix Table -->
+          <div class="card table-card">
+            <h3 class="card-heading">Side-by-Side Forecast Comparison</h3>
+            <p class="card-subheading">Future nominal numbers vs purchasing power in today's money</p>
+            <div class="table-responsive">
+              <table class="comparison-table" id="comparison-matrix-table">
+                <thead>
+                  <tr>
+                    <th>Component</th>
+                    <th class="text-right">Future Value (Nominal)</th>
+                    <th class="text-right">Today's Purchasing Power</th>
+                    <th class="text-right">Inflation Impact</th>
+                  </tr>
+                </thead>
+                <tbody id="comparison-matrix-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Year-by-Year Schedule Table Accordion -->
+        <div class="card table-card">
+          <div class="card-header-flex">
+            <div>
+              <h3 class="card-heading">Full Lifetime Projection Schedule (to Age 100)</h3>
+              <p class="card-subheading">Detailed audit of salary, contributions, investment gain, drawdown withdrawals, and remaining pot</p>
+            </div>
+            <div class="schedule-actions-flex">
+              <div class="toggle-segmented" role="radiogroup" aria-label="Schedule Filter">
+                <button type="button" class="segment-btn active" id="btn-sched-all" data-sched="all">All (to 100)</button>
+                <button type="button" class="segment-btn" id="btn-sched-accum" data-sched="accum">Accumulation</button>
+                <button type="button" class="segment-btn" id="btn-sched-draw" data-sched="draw">Drawdown</button>
+              </div>
+              <button type="button" class="btn btn-outline" id="btn-toggle-schedule">
+                <span id="schedule-toggle-text">Show Full Table</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="schedule-chevron"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="schedule-table-wrap" class="table-responsive schedule-wrap" style="display: none;">
+            <table class="schedule-table" id="schedule-table">
+              <thead>
+                <tr>
+                  <th>Age</th>
+                  <th>Year</th>
+                  <th>Phase</th>
+                  <th>Annual Cash Flow</th>
+                  <th>Contrib / Withdrawal</th>
+                  <th>Investment Gain</th>
+                  <th>Year-End Pot (Nominal)</th>
+                  <th>Year-End Pot (Today's £)</th>
+                </tr>
+              </thead>
+              <tbody id="schedule-table-body">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- UK Guidelines & Regulatory Information -->
+        <div class="card info-card">
+          <h3 class="card-heading">UK Pension Rules & Modeling Assumptions</h3>
+          <div class="guidelines-grid">
+            <div class="guideline-item">
+              <strong>25% Tax-Free Lump Sum (PCLS)</strong>
+              <p>Under UK rules, individuals can typically withdraw up to 25% of their pension pot tax-free (Pension Commencement Lump Sum). This is subject to the UK statutory Lump Sum Allowance limit of £268,275 (unless lifetime allowance protections apply). The remaining 75% is taxed as income under UK income tax bands upon drawdown.</p>
+            </div>
+            <div class="guideline-item">
+              <strong>UK Public State Pension & Triple Lock</strong>
+              <p>The UK State Pension is protected by the Triple Lock mechanism (increasing by the highest of inflation, average wage growth, or 2.5%). Per the user model specification, it is projected to grow in line with the selected inflation rate, preserving 100% of its real purchasing power in today's money.</p>
+            </div>
+            <div class="guideline-item">
+              <strong>Nominal vs Real (Today's Money)</strong>
+              <p>Future nominal values show the actual pounds and pence in the year of retirement. Real values discount these future sums by $(1 + \text{inflation})^N$ to show what that money can actually buy today, preventing the illusion of wealth created by decades of inflation compounding.</p>
+            </div>
+            <div class="guideline-item">
+              <strong>Auto-Enrolment & Tax Relief</strong>
+              <p>UK workplace pensions mandate a minimum 8% total contribution (typically 5% employee and 3% employer). Contributions into registered pensions benefit from UK tax relief at source (or salary sacrifice National Insurance relief).</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-container">
+      <p>© 2026 UK Pension Forecaster. For informational & financial modeling purposes. Complies with UK pension guidelines.</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
+
