@@ -375,6 +375,12 @@ body {
   }
 }
 
+/* Full-Width Section (Spans entire layout width below the 2-column grid) */
+.full-width-section {
+  width: 100%;
+  margin-top: 24px;
+}
+
 /* Cards */
 .card {
   background: var(--bg-card);

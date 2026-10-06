@@ -466,9 +466,9 @@ export function renderIncomeComparisonChart(containerEl, summary, isMonthly = tr
     }
   ];
 
-  const width = 860;
-  const height = 320;
-  const margin = { top: 35, right: 40, bottom: 45, left: 75 };
+  const width = 1000;
+  const height = 340;
+  const margin = { top: 35, right: 45, bottom: 45, left: 80 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -504,8 +504,8 @@ export function renderIncomeComparisonChart(containerEl, summary, isMonthly = tr
   svg.appendChild(gridGroup);
 
   const groupWidth = innerWidth / categories.length;
-  const barWidth = Math.min(64, groupWidth * 0.28);
-  const gap = 12;
+  const barWidth = Math.min(80, groupWidth * 0.28);
+  const gap = 14;
 
   categories.forEach((cat, idx) => {
     const groupCenterX = margin.left + (idx + 0.5) * groupWidth;
