@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { calculatePensionForecast, UK_DEFAULTS } from '../js/calculator.js';
+import { calculatePensionForecast, calculateIncomeTax, UK_DEFAULTS } from '../js/calculator.js';
 
 console.log('--- Running UK Pension Calculator Test Suite ---');
 
@@ -147,7 +147,7 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   // Verify pot drawdown is modeled post retirement
   const retirePoint = res.timeline.find(d => d.age === 65);
   const postRetirePoint = res.timeline.find(d => d.age === 66);
-  assert.ok(retirePoint.closingPotNominal <= res.summary.remainingPotNominal + 1, 'Post-lump sum pot reflected at retirement');
+  assert.ok(Math.abs(retirePoint.potAfterLumpSumNominal - res.summary.remainingPotNominal) < 1, 'Post-lump sum pot reflected at retirement');
   assert.ok(postRetirePoint.potDrawdownNominal > 0, 'Drawdown withdrawal is active in retirement');
 
   console.log('✓ Test 5 passed: Full lifetime trajectory to age 100 verified');
@@ -259,6 +259,56 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   }
 
   console.log('✓ Test 9 passed: Percentage drawdown real income decrease and triple-lock parity verified');
+}
+
+// Test 10: UK income tax bands (2026/27, rUK)
+{
+  assert.equal(calculateIncomeTax(12570), 0);
+  assert.equal(calculateIncomeTax(50270), 7540);
+  assert.equal(Math.round(calculateIncomeTax(60000)), 7540 + Math.round(9730 * 0.4));
+  // £125,140: PA fully tapered -> 37700*0.2 + (125140-37700)*0.4
+  assert.equal(Math.round(calculateIncomeTax(125140)), Math.round(7540 + 87440 * 0.4));
+  console.log('✓ Test 10 passed: UK income tax bands and personal allowance taper verified');
+}
+
+// Test 11: Net income is below gross; drawdown fully taxable after upfront lump sum
+{
+  const res = calculatePensionForecast({ currentAge: 40, retirementAge: 67, annualSalary: 40000, contributionType: 'percent', employeeContribution: 5, employerContributionPercent: 3, inflationRate: 2.5, investmentGrowthRate: 6, feeRate: 0.5, takeLumpSum: true });
+  const s = res.summary;
+  assert.ok(s.netAnnualIncomeReal < s.totalAnnualIncomeReal, 'Net below gross');
+  assert.equal(s.privateTaxableFraction, 1);
+  const noLump = calculatePensionForecast({ currentAge: 40, retirementAge: 67, annualSalary: 40000, contributionType: 'percent', employeeContribution: 5, employerContributionPercent: 3, takeLumpSum: false });
+  assert.equal(noLump.summary.privateTaxableFraction, 0.75);
+  console.log('✓ Test 11 passed: Retirement income tax applied');
+}
+
+// Test 12: Fixed £ contributions rise with salary; SIPP contributions rise with inflation
+{
+  const res = calculatePensionForecast({ currentAge: 30, retirementAge: 40, annualSalary: 30000, annualSalaryIncrease: 3, inflationRate: 2, contributionType: 'amount', employeeContribution: 100, employerContributionPercent: 0, externalSippMonthlyNet: 100 });
+  const t = res.accumulationTimeline;
+  assert.ok(Math.abs(t[1].employeeContrib - 1200 * 1.03) < 1e-6);
+  assert.ok(Math.abs(t[1].sippGrossContrib - 1500 * 1.02) < 1e-6);
+  console.log('✓ Test 12 passed: Contributions indexed');
+}
+
+// Test 13: HMRC 100% of earnings relief cap and £60k Annual Allowance
+{
+  const low = calculatePensionForecast({ currentAge: 30, retirementAge: 35, annualSalary: 10000, annualSalaryIncrease: 0, inflationRate: 0, employeeContribution: 0, employerContributionPercent: 0, externalSippMonthlyNet: 2000 });
+  assert.ok(Math.abs(low.accumulationTimeline[0].sippGrossContrib - 10000) < 1e-6, 'SIPP gross capped at salary');
+  assert.ok(low.summary.contributionWarnings.reliefCapAge);
+  const high = calculatePensionForecast({ currentAge: 30, retirementAge: 35, annualSalary: 200000, annualSalaryIncrease: 0, inflationRate: 0, employeeContribution: 10, employerContributionPercent: 10, externalSippMonthlyNet: 3000 });
+  const p = high.accumulationTimeline[0];
+  assert.ok(Math.abs(p.workplaceContrib + p.sippGrossContrib - 60000) < 1e-6, 'Total capped at AA');
+  assert.ok(high.summary.contributionWarnings.annualAllowanceAge);
+  console.log('✓ Test 13 passed: Relief cap and Annual Allowance enforced');
+}
+
+// Test 14: Retirement-year withdrawal is deducted from the pot
+{
+  const res = calculatePensionForecast({ currentAge: 60, retirementAge: 65, annualSalary: 50000, employeeContribution: 5, employerContributionPercent: 5, investmentGrowthRate: 0, feeRate: 0, inflationRate: 0, drawdownRate: 4 });
+  const rp = res.timeline.find(d => d.isRetirementTransition);
+  assert.ok(Math.abs(rp.closingPotNominal - res.summary.remainingPotNominal * 0.96) < 1e-6);
+  console.log('✓ Test 14 passed: First-year withdrawal deducted');
 }
 
 console.log('ALL TESTS PASSED SUCCESSFULLY! 🎉');

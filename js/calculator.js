@@ -12,7 +12,7 @@
 export const UK_DEFAULTS = {
   MIN_RETIREMENT_AGE: 55, // Rising to 57 in UK from 2028
   DEFAULT_STATE_PENSION_AGE: 67,
-  CURRENT_FULL_STATE_PENSION_ANNUAL: 11973.0, // 2025/2026 full new state pension (£230.25/week * 52)
+  CURRENT_FULL_STATE_PENSION_ANNUAL: 12547.6, // 2026/27 full new state pension (£241.30/week * 52)
   LUMP_SUM_ALLOWANCE_LIMIT: 268275.0, // UK PCLS cap unless protected
   DEFAULT_INFLATION: 2.5,
   DEFAULT_SALARY_INCREASE: 3.0,
@@ -24,8 +24,35 @@ export const UK_DEFAULTS = {
     minimum: 14400,
     moderate: 31300,
     comfortable: 43100
-  }
+  },
+  // UK Income Tax (England, Wales & NI) 2026/27
+  PERSONAL_ALLOWANCE: 12570,
+  BASIC_RATE_BAND: 37700, // taxable income taxed at 20% (up to £50,270 gross)
+  ADDITIONAL_RATE_THRESHOLD: 125140,
+  PA_TAPER_THRESHOLD: 100000,
+  THRESHOLD_FREEZE_YEARS: 4, // thresholds frozen until April 2031 (2030/31), then assumed to rise with inflation
+  ANNUAL_ALLOWANCE: 60000 // gross pension contributions per tax year (standard, untapered)
 };
+
+/**
+ * UK income tax on a gross annual income (rUK bands).
+ * @param {number} income - gross taxable income (nominal £)
+ * @param {number} thresholdFactor - multiplier applied to bands (1 while frozen)
+ */
+export function calculateIncomeTax(income, thresholdFactor = 1) {
+  if (income <= 0) return 0;
+  const f = thresholdFactor;
+  let pa = UK_DEFAULTS.PERSONAL_ALLOWANCE * f;
+  const taperStart = UK_DEFAULTS.PA_TAPER_THRESHOLD * f;
+  if (income > taperStart) pa = Math.max(0, pa - (income - taperStart) / 2);
+  const taxable = Math.max(0, income - pa);
+  const basicBand = UK_DEFAULTS.BASIC_RATE_BAND * f;
+  const addThreshold = UK_DEFAULTS.ADDITIONAL_RATE_THRESHOLD * f;
+  const basic = Math.min(taxable, basicBand) * 0.20;
+  const higher = Math.max(0, Math.min(taxable, addThreshold) - basicBand) * 0.40;
+  const additional = Math.max(0, taxable - addThreshold) * 0.45;
+  return basic + higher + additional;
+}
 
 /**
  * Calculates pension forecast including external SIPP and drawdown until age 100
@@ -89,6 +116,8 @@ export function calculatePensionForecast(params) {
   const accumulationTimeline = [];
   const fullTimeline = [];
 
+  const contributionWarnings = { reliefCapAge: null, annualAllowanceAge: null, annualAllowanceExcessAge: null };
+
   for (let year = 1; year <= yearsToRetire; year++) {
     const ageAtEnd = currentAge + year;
     const startPot = potNominal;
@@ -101,22 +130,48 @@ export function calculatePensionForecast(params) {
     if (contributionType === 'percent') {
       employeeAnnualContrib = currentSalary * (employeeInput / 100);
     } else {
-      employeeAnnualContrib = employeeInput * 12;
+      // Fixed £ amounts rise in line with salary (pay rises) so they keep the same share of pay
+      employeeAnnualContrib = employeeInput * 12 * Math.pow(1 + salaryIncreaseRate, year - 1);
     }
 
     const employerAnnualContrib = currentSalary * employerPercent;
     const workplaceAnnualContrib = employeeAnnualContrib + employerAnnualContrib;
 
+    // External SIPP: net contribution rises with inflation to keep its real value
+    let yearSippGross = sippGrossAnnual * Math.pow(1 + inflationRate, year - 1);
+
+    // HMRC rule: personal (employee + SIPP) gross contributions only get relief up to 100% of relevant earnings
+    const reliefRoom = Math.max(0, currentSalary - employeeAnnualContrib);
+    if (yearSippGross > reliefRoom) {
+      yearSippGross = reliefRoom;
+      if (!contributionWarnings.reliefCapAge) contributionWarnings.reliefCapAge = ageAtEnd;
+    }
+
+    // Annual Allowance (£60k gross total). SIPP is reduced first to avoid an AA tax charge.
+    const aaExcess = workplaceAnnualContrib + yearSippGross - UK_DEFAULTS.ANNUAL_ALLOWANCE;
+    if (aaExcess > 0) {
+      const sippCut = Math.min(yearSippGross, aaExcess);
+      if (sippCut > 0) {
+        yearSippGross -= sippCut;
+        if (!contributionWarnings.annualAllowanceAge) contributionWarnings.annualAllowanceAge = ageAtEnd;
+      }
+      if (aaExcess - sippCut > 0 && !contributionWarnings.annualAllowanceExcessAge) {
+        contributionWarnings.annualAllowanceExcessAge = ageAtEnd; // workplace alone exceeds AA
+      }
+    }
+    const yearSippNet = yearSippGross * 0.8;
+    const yearSippRelief = yearSippGross - yearSippNet;
+
     // Total new contributions this year including SIPP gross (net + HMRC relief)
-    const totalAnnualContrib = workplaceAnnualContrib + sippGrossAnnual;
+    const totalAnnualContrib = workplaceAnnualContrib + yearSippGross;
 
     const investmentGain = (startPot * netGrowthRate) + (totalAnnualContrib * (netGrowthRate / 2));
     potNominal = startPot + totalAnnualContrib + investmentGain;
 
     cumulativeEmployeeContribNominal += employeeAnnualContrib;
     cumulativeEmployerContribNominal += employerAnnualContrib;
-    cumulativeSippNetNominal += sippNetAnnual;
-    cumulativeSippHmrcReliefNominal += sippHmrcReliefAnnual;
+    cumulativeSippNetNominal += yearSippNet;
+    cumulativeSippHmrcReliefNominal += yearSippRelief;
     cumulativeGrowthNominal += investmentGain;
 
     const inflationFactor = Math.pow(1 + inflationRate, year);
@@ -134,9 +189,9 @@ export function calculatePensionForecast(params) {
       employeeContrib: employeeAnnualContrib,
       employerContrib: employerAnnualContrib,
       workplaceContrib: workplaceAnnualContrib,
-      sippNetContrib: sippNetAnnual,
-      sippHmrcRelief: sippHmrcReliefAnnual,
-      sippGrossContrib: sippGrossAnnual,
+      sippNetContrib: yearSippNet,
+      sippHmrcRelief: yearSippRelief,
+      sippGrossContrib: yearSippGross,
       totalContrib: totalAnnualContrib,
       investmentGain,
       closingPotNominal: potNominal,
@@ -222,10 +277,29 @@ export function calculatePensionForecast(params) {
   const privateSharePercent = totalCombinedMonthlyReal > 0 ? (privateIncomeMonthlyReal / totalCombinedMonthlyReal) * 100 : 0;
   const publicSharePercent = totalCombinedMonthlyReal > 0 ? (publicIncomeMonthlyReal / totalCombinedMonthlyReal) * 100 : 0;
 
+  // Income tax on retirement income.
+  // If the tax-free lump sum was taken upfront, all later drawdown is taxable; otherwise 25% of each withdrawal is tax-free (UFPLS).
+  const privateTaxableFraction = (takeLumpSum && lumpSumNominal > 0) ? 1 : 0.75;
+  const taxForYear = (totalYear, privateNominal, spNominal) => {
+    const yearsIndexed = Math.max(0, totalYear - UK_DEFAULTS.THRESHOLD_FREEZE_YEARS);
+    const thresholdFactor = Math.pow(1 + inflationRate, yearsIndexed);
+    const taxableIncome = privateNominal * privateTaxableFraction + spNominal;
+    return calculateIncomeTax(taxableIncome, thresholdFactor);
+  };
+  const netRealAt = (totalYear, privateReal, spReal) => {
+    const f = Math.pow(1 + inflationRate, totalYear);
+    const tax = taxForYear(totalYear, privateReal * f, spReal * f);
+    return { taxNominal: tax, netNominal: (privateReal + spReal) * f - tax, netReal: privateReal + spReal - tax / f };
+  };
+
+  const retireTax = netRealAt(yearsToRetire, annualPotIncomeReal, isEligibleForStatePension ? annualStatePensionReal : 0);
+  const spStartYear = Math.max(statePensionAge, retirementAge) - currentAge;
+  const fullCombinedTax = netRealAt(spStartYear, annualPotIncomeReal, includeStatePension ? annualStatePensionReal : 0);
+
   // Drawdown Strategy: 'percentOfPot' (withdraw fixed % of remaining pot each year) or 'flatReal' (inflation-linked flat real income)
   const drawdownStrategy = params.drawdownStrategy === 'percentOfPot' ? 'percentOfPot' : 'flatReal';
 
-  // Phase 2: Decumulation & Drawdown Simulation (retirementAge + 1 -> 100)
+  // Phase 2: Decumulation & Drawdown Simulation (first withdrawal in the retirement year, then retirementAge + 1 -> 100)
   const retirementTimeline = [];
   let currentDrawdownPotNominal = remainingPotNominal;
   let potDepletedAge = null;
@@ -234,25 +308,45 @@ export function calculatePensionForecast(params) {
 
   const initialWithdrawalReal = annualPotIncomeReal;
 
+  // First-year withdrawal is taken from the pot during the retirement year (mid-year growth convention)
+  const firstWithdrawalNominal = Math.min(annualPotIncomeNominal, remainingPotNominal * (1 + netGrowthRate / 2));
+  const firstYearGain = (remainingPotNominal - firstWithdrawalNominal / 2) * netGrowthRate;
+  currentDrawdownPotNominal = Math.max(0, remainingPotNominal - firstWithdrawalNominal + firstYearGain);
+  if (remainingPotNominal > 0 && currentDrawdownPotNominal <= 0.01) {
+    currentDrawdownPotNominal = 0;
+    potDepletedAge = retirementAge;
+  }
+  cumulativeWithdrawalsNominal += firstWithdrawalNominal;
+  cumulativeWithdrawalsReal += firstWithdrawalNominal / totalInflationDeflator;
+
   const retirementPointIndex = fullTimeline.length - 1;
   if (fullTimeline[retirementPointIndex]) {
-    fullTimeline[retirementPointIndex].potBeforeLumpSumNominal = finalPotNominal;
-    fullTimeline[retirementPointIndex].potBeforeLumpSumReal = finalPotReal;
-    fullTimeline[retirementPointIndex].closingPotNominal = remainingPotNominal;
-    fullTimeline[retirementPointIndex].closingPotReal = remainingPotReal;
-    fullTimeline[retirementPointIndex].lumpSumTakenNominal = lumpSumNominal;
-    fullTimeline[retirementPointIndex].lumpSumTakenReal = lumpSumReal;
-    fullTimeline[retirementPointIndex].isRetirementTransition = true;
-    fullTimeline[retirementPointIndex].potDrawdownReal = annualPotIncomeReal;
-    fullTimeline[retirementPointIndex].potDrawdownNominal = annualPotIncomeNominal;
-    fullTimeline[retirementPointIndex].statePensionReal = isEligibleForStatePension ? annualStatePensionReal : 0;
-    fullTimeline[retirementPointIndex].statePensionNominal = isEligibleForStatePension ? annualStatePensionNominal : 0;
-    fullTimeline[retirementPointIndex].statePensionActive = isEligibleForStatePension;
-    fullTimeline[retirementPointIndex].totalSalaryReal = annualPotIncomeReal + (isEligibleForStatePension ? annualStatePensionReal : 0);
-    fullTimeline[retirementPointIndex].totalSalaryNominal = annualPotIncomeNominal + (isEligibleForStatePension ? annualStatePensionNominal : 0);
-    fullTimeline[retirementPointIndex].totalIncomeReal = fullTimeline[retirementPointIndex].totalSalaryReal;
-    fullTimeline[retirementPointIndex].totalIncomeNominal = fullTimeline[retirementPointIndex].totalSalaryNominal;
-    fullTimeline[retirementPointIndex].privateDropPercent = 0;
+    const rp = fullTimeline[retirementPointIndex];
+    rp.potBeforeLumpSumNominal = finalPotNominal;
+    rp.potBeforeLumpSumReal = finalPotReal;
+    rp.potAfterLumpSumNominal = remainingPotNominal;
+    rp.potAfterLumpSumReal = remainingPotReal;
+    rp.closingPotNominal = currentDrawdownPotNominal;
+    rp.closingPotReal = currentDrawdownPotNominal / totalInflationDeflator;
+    rp.lumpSumTakenNominal = lumpSumNominal;
+    rp.lumpSumTakenReal = lumpSumReal;
+    rp.isRetirementTransition = true;
+    rp.potDrawdownReal = annualPotIncomeReal;
+    rp.potDrawdownNominal = annualPotIncomeNominal;
+    rp.statePensionReal = isEligibleForStatePension ? annualStatePensionReal : 0;
+    rp.statePensionNominal = isEligibleForStatePension ? annualStatePensionNominal : 0;
+    rp.statePensionActive = isEligibleForStatePension;
+    rp.totalSalaryReal = annualPotIncomeReal + (isEligibleForStatePension ? annualStatePensionReal : 0);
+    rp.totalSalaryNominal = annualPotIncomeNominal + (isEligibleForStatePension ? annualStatePensionNominal : 0);
+    rp.totalIncomeReal = rp.totalSalaryReal;
+    rp.totalIncomeNominal = rp.totalSalaryNominal;
+    rp.incomeTaxNominal = retireTax.taxNominal;
+    rp.netIncomeNominal = retireTax.netNominal;
+    rp.netIncomeReal = retireTax.netReal;
+    rp.cumulativeWithdrawalsNominal = cumulativeWithdrawalsNominal;
+    rp.cumulativeWithdrawalsReal = cumulativeWithdrawalsReal;
+    rp.isPotDepleted = currentDrawdownPotNominal <= 0;
+    rp.privateDropPercent = 0;
   }
 
   for (let age = retirementAge + 1; age <= maxAge; age++) {
@@ -304,6 +398,7 @@ export function calculatePensionForecast(params) {
     const spNominal = baselineStatePension * inflationFactor;
     const spReal = baselineStatePension;
     const spActive = includeStatePension && (age >= statePensionAge);
+    const yearTax = taxForYear(totalYear, actualWithdrawalNominal, spActive ? spNominal : 0);
 
     // Private pension income purchasing power drop from Year 1 of retirement
     const privateDropPercent = initialWithdrawalReal > 0 
@@ -337,6 +432,9 @@ export function calculatePensionForecast(params) {
       totalSalaryReal: actualWithdrawalReal + (spActive ? spReal : 0),
       totalIncomeNominal: actualWithdrawalNominal + (spActive ? spNominal : 0),
       totalIncomeReal: actualWithdrawalReal + (spActive ? spReal : 0),
+      incomeTaxNominal: yearTax,
+      netIncomeNominal: actualWithdrawalNominal + (spActive ? spNominal : 0) - yearTax,
+      netIncomeReal: actualWithdrawalReal + (spActive ? spReal : 0) - yearTax / inflationFactor,
       privateDropPercent,
       cumulativeWithdrawalsNominal,
       cumulativeWithdrawalsReal,
@@ -439,6 +537,17 @@ export function calculatePensionForecast(params) {
       totalMonthlyIncomeNominal,
       totalAnnualIncomeReal,
       totalMonthlyIncomeReal,
+      // After-tax income at retirement (UK income tax, rUK bands)
+      incomeTaxAnnualNominal: retireTax.taxNominal,
+      netAnnualIncomeNominal: retireTax.netNominal,
+      netMonthlyIncomeNominal: retireTax.netNominal / 12,
+      netAnnualIncomeReal: retireTax.netReal,
+      netMonthlyIncomeReal: retireTax.netReal / 12,
+      fullCombinedNetAnnualReal: fullCombinedTax.netReal,
+      fullCombinedNetMonthlyReal: fullCombinedTax.netReal / 12,
+      privateTaxableFraction,
+      // Contribution limit warnings (first age each limit was hit, or null)
+      contributionWarnings,
       // Full Combined (once state pension commences)
       fullCombinedAnnualNominal,
       fullCombinedMonthlyNominal,

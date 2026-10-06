@@ -369,9 +369,9 @@
                   </div>
                   <div class="currency-input-wrap">
                     <span class="currency-symbol">£</span>
-                    <input type="number" id="statePensionAnnual" step="50" value="11973" class="text-input">
+                    <input type="number" id="statePensionAnnual" step="50" value="12548" class="text-input">
                   </div>
-                  <div class="field-help">2025/26 full rate: £230.25/week (~£11,973/yr)</div>
+                  <div class="field-help">2026/27 full rate: £241.30/week (~£12,548/yr)</div>
                 </div>
 
                 <div class="input-group">
@@ -414,12 +414,15 @@
         </div>
 
         <!-- Hero Headline Card: Total Retirement Income -->
+        <div id="contribution-warnings" role="alert" style="display:none; margin-bottom:16px; padding:12px 16px; border-radius:10px; background:#fef3c7; color:#92400e; border:1px solid #f59e0b; font-size:0.9rem;"></div>
+
         <div class="card hero-income-card">
           <div class="hero-header">
             <div>
               <span class="hero-tag">Total Projected Retirement Income</span>
               <h2 class="hero-title" id="hero-income-main">£1,609 / month</h2>
               <p class="hero-sub" id="hero-income-sub">In Today's Purchasing Power (Real £)</p>
+              <p class="hero-sub" id="hero-income-net" style="margin-top:4px; font-weight:600;"></p>
             </div>
             <div class="hero-comparison-badge">
               <span class="badge-label">Equivalent Future Nominal Value:</span>
@@ -688,7 +691,7 @@
               <span class="explainer-bullet" style="background:#8b5cf6;"></span>
               <div>
                 <strong>Public State Pension Keeps Up 100%</strong>:
-                Protected by the Triple Lock, your State Pension increases in nominal terms at the same rate as inflation. Therefore, in <em>today's purchasing power</em> it stays completely horizontal and flat (<span id="explainer-sp-amount">£11,973 / yr</span>) without losing a single penny of real buying power.
+                Protected by the Triple Lock, your State Pension increases in nominal terms at the same rate as inflation. Therefore, in <em>today's purchasing power</em> it stays completely horizontal and flat (<span id="explainer-sp-amount">£12,548 / yr</span>) without losing a single penny of real buying power.
               </div>
             </div>
             <div class="explainer-item private-note">

@@ -281,7 +281,7 @@ const DEFAULT_STARTER_PROFILES = {
     drawdownRate: 4.0,
     drawdownStrategy: 'percentOfPot',
     includeStatePension: true,
-    statePensionAnnual: 11973,
+    statePensionAnnual: 12548,
     statePensionAge: 67,
     frequency: 'monthly',
     viewMode: 'sidebyside'
@@ -306,7 +306,7 @@ const DEFAULT_STARTER_PROFILES = {
     drawdownRate: 3.75,
     drawdownStrategy: 'percentOfPot',
     includeStatePension: true,
-    statePensionAnnual: 11973,
+    statePensionAnnual: 12548,
     statePensionAge: 67,
     frequency: 'monthly',
     viewMode: 'sidebyside'
@@ -1162,6 +1162,14 @@ function updateHeroCardAtAge(targetAge) {
     elements.heroInflationNote.textContent = `Future nominal value after ${inputs.inflationRate}% inflation over ${compoundingYrs} yrs`;
   }
 
+  // After-tax income (UK income tax on drawdown + State Pension)
+  const heroNetEl = document.getElementById('hero-income-net');
+  if (heroNetEl) {
+    const netVal = (state.viewMode === 'nominal' ? (point.netIncomeNominal || 0) : (point.netIncomeReal || 0)) * mult;
+    const taxVal = (point.incomeTaxNominal || 0) / (state.viewMode === 'nominal' ? 1 : (point.inflationFactor || 1)) * mult;
+    heroNetEl.textContent = `After income tax: ${formatGBP(netVal)} ${unit} (tax ${formatGBP(taxVal)})`;
+  }
+
   // Monthly Breakdown (Private Pot vs UK Public State Pension)
   if (elements.heroSplitPrivateReal) {
     if (point.isPotDepleted && validAge > inputs.retirementAge && potDrawdownReal <= 0) {
@@ -1239,6 +1247,18 @@ function updateResultsUI() {
   // Update Hero Card at viewing age
   const viewingAge = state.viewingRetirementAge || inputs.retirementAge;
   updateHeroCardAtAge(viewingAge);
+
+  // HMRC contribution limit warnings
+  const warnEl = document.getElementById('contribution-warnings');
+  if (warnEl) {
+    const w = summary.contributionWarnings || {};
+    const msgs = [];
+    if (w.reliefCapAge) msgs.push(`From age ${w.reliefCapAge}, your SIPP contributions are capped: tax relief is only available on personal contributions up to 100% of your salary.`);
+    if (w.annualAllowanceAge) msgs.push(`From age ${w.annualAllowanceAge}, your SIPP contributions are reduced to stay within the £60,000 Annual Allowance.`);
+    if (w.annualAllowanceExcessAge) msgs.push(`From age ${w.annualAllowanceExcessAge}, workplace contributions alone exceed the £60,000 Annual Allowance — an Annual Allowance tax charge may apply.`);
+    warnEl.innerHTML = msgs.map(m => `⚠️ ${m}`).join('<br>');
+    warnEl.style.display = msgs.length ? 'block' : 'none';
+  }
 
   const potIncomeValReal = (isMonthly ? summary.potIncomeMonthlyReal : summary.potIncomeAnnualReal);
   const potIncomeValNom = (isMonthly ? summary.potIncomeMonthlyNominal : summary.potIncomeAnnualNominal);
