@@ -422,12 +422,62 @@
               <span class="hero-tag">Total Projected Retirement Income</span>
               <h2 class="hero-title" id="hero-income-main">£1,609 / month</h2>
               <p class="hero-sub" id="hero-income-sub">In Today's Purchasing Power (Real £)</p>
-              <p class="hero-sub" id="hero-income-net" style="margin-top:4px; font-weight:600;"></p>
+              <div class="hero-net-callout" id="hero-income-net">
+                <span class="net-pill-tag">Take-Home:</span>
+                <strong id="hero-income-net-val">£1,474 / mo</strong>
+                <span id="hero-income-net-tax" class="net-tax-sub">(after -£135/mo future UK income tax)</span>
+              </div>
             </div>
             <div class="hero-comparison-badge">
               <span class="badge-label">Equivalent Future Nominal Value:</span>
               <span class="badge-value" id="hero-income-nominal">£4,011 / month</span>
               <span class="badge-info" id="hero-inflation-note">Deflated by 2.5% inflation over 37 yrs</span>
+            </div>
+          </div>
+
+          <!-- Gross vs Net Monthly Tax Breakdown Card -->
+          <div class="hero-tax-breakdown-card" id="hero-tax-breakdown-card">
+            <div class="tax-breakdown-header">
+              <div class="tax-breakdown-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M6 15h2M10 15h4"/>
+                </svg>
+                <span>Estimated Take-Home (Gross vs Net Monthly)</span>
+              </div>
+              <span class="tax-effective-badge" id="hero-tax-effective-badge">Effective Tax: 8.4%</span>
+            </div>
+
+            <div class="tax-breakdown-grid">
+              <!-- Gross -->
+              <div class="tax-pill-card gross">
+                <div class="tax-pill-label">Gross Income</div>
+                <div class="tax-pill-amount" id="hero-gross-val">£1,609 / mo</div>
+                <div class="tax-pill-sub" id="hero-gross-sub">Nominal: £4,011 / mo</div>
+              </div>
+
+              <!-- Operator Minus -->
+              <div class="tax-pill-op" aria-hidden="true">−</div>
+
+              <!-- Future Taxes -->
+              <div class="tax-pill-card tax">
+                <div class="tax-pill-label">Est. UK Income Tax</div>
+                <div class="tax-pill-amount text-amber" id="hero-tax-val">-£135 / mo</div>
+                <div class="tax-pill-sub" id="hero-tax-sub">Nominal: -£337 / mo</div>
+              </div>
+
+              <!-- Operator Equals -->
+              <div class="tax-pill-op" aria-hidden="true">=</div>
+
+              <!-- Net Take-Home -->
+              <div class="tax-pill-card net">
+                <div class="tax-pill-label">Net Take-Home</div>
+                <div class="tax-pill-amount text-emerald" id="hero-net-val">£1,474 / mo</div>
+                <div class="tax-pill-sub" id="hero-net-sub">Nominal: £3,674 / mo</div>
+              </div>
+            </div>
+
+            <div class="tax-breakdown-explainer" id="hero-tax-explainer">
+              Based on UK personal allowance (£12,570 frozen to 2031, indexed thereafter) and income tax bands (20% basic, 40% higher).
             </div>
           </div>
 
@@ -612,7 +662,26 @@
             </div>
           </div>
 
-          <!-- Card 6: Replacement Rate -->
+          <!-- Card 6: Net Take-Home Pay (After Tax) -->
+          <div class="card metric-card highlight-net-card">
+            <div class="metric-header">
+              <span class="metric-title">Net Take-Home Pay</span>
+              <span class="metric-icon net-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M6 15h2M10 15h4"/></svg>
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-primary-val text-emerald" id="metric-net-real">£1,474 / mo</div>
+              <div class="metric-label-real">In Today's Money (After Tax)</div>
+              <div class="metric-secondary-row">
+                <span>Future Value (Nominal):</span>
+                <strong id="metric-net-nominal">£3,674 / mo</strong>
+              </div>
+              <div class="metric-tag info" id="metric-net-tax-tag">Est. Tax: -£135/mo (8.4%)</div>
+            </div>
+          </div>
+
+          <!-- Card 7: Replacement Rate -->
           <div class="card metric-card">
             <div class="metric-header">
               <span class="metric-title">Income Replacement Rate</span>
@@ -630,7 +699,7 @@
             </div>
           </div>
 
-          <!-- Card 7: Pot Balance at Age 100 & Longevity -->
+          <!-- Card 8: Pot Balance at Age 100 & Longevity -->
           <div class="card metric-card">
             <div class="metric-header">
               <span class="metric-title">Pot Balance at Age 100</span>
@@ -679,9 +748,10 @@
                 <button type="button" class="segment-btn" id="btn-draw-strat-flat" data-strat="flatReal">Flat Real Income</button>
               </div>
               <div class="chart-legend">
-                <span class="legend-item"><span class="legend-color nominal"></span> Total Combined Salary</span>
-                <span class="legend-item"><span class="legend-color real"></span> Private Pot Drawdown (Decreasing)</span>
-                <span class="legend-item"><span class="legend-color sp"></span> Public State Pension (Constant)</span>
+                <span class="legend-item"><span class="legend-color nominal"></span> Gross Combined Salary</span>
+                <span class="legend-item"><span class="legend-color net-legend-item"></span> Net Take-Home (After Tax)</span>
+                <span class="legend-item"><span class="legend-color real"></span> Private Pot Drawdown</span>
+                <span class="legend-item"><span class="legend-color sp"></span> Public State Pension</span>
               </div>
             </div>
           </div>

@@ -35,12 +35,22 @@ export const UK_DEFAULTS = {
 };
 
 /**
- * UK income tax on a gross annual income (rUK bands).
+ * UK income tax breakdown on a gross annual taxable income (rUK bands).
  * @param {number} income - gross taxable income (nominal £)
  * @param {number} thresholdFactor - multiplier applied to bands (1 while frozen)
  */
-export function calculateIncomeTax(income, thresholdFactor = 1) {
-  if (income <= 0) return 0;
+export function calculateTaxBreakdown(income, thresholdFactor = 1) {
+  if (income <= 0) {
+    return {
+      personalAllowance: UK_DEFAULTS.PERSONAL_ALLOWANCE * thresholdFactor,
+      taxableIncome: 0,
+      basicRateTax: 0,
+      higherRateTax: 0,
+      additionalRateTax: 0,
+      totalTax: 0,
+      effectiveRate: 0
+    };
+  }
   const f = thresholdFactor;
   let pa = UK_DEFAULTS.PERSONAL_ALLOWANCE * f;
   const taperStart = UK_DEFAULTS.PA_TAPER_THRESHOLD * f;
@@ -51,7 +61,26 @@ export function calculateIncomeTax(income, thresholdFactor = 1) {
   const basic = Math.min(taxable, basicBand) * 0.20;
   const higher = Math.max(0, Math.min(taxable, addThreshold) - basicBand) * 0.40;
   const additional = Math.max(0, taxable - addThreshold) * 0.45;
-  return basic + higher + additional;
+  const totalTax = basic + higher + additional;
+  const effectiveRate = income > 0 ? (totalTax / income) * 100 : 0;
+  return {
+    personalAllowance: pa,
+    taxableIncome: taxable,
+    basicRateTax: basic,
+    higherRateTax: higher,
+    additionalRateTax: additional,
+    totalTax,
+    effectiveRate
+  };
+}
+
+/**
+ * UK income tax on a gross annual income (rUK bands).
+ * @param {number} income - gross taxable income (nominal £)
+ * @param {number} thresholdFactor - multiplier applied to bands (1 while frozen)
+ */
+export function calculateIncomeTax(income, thresholdFactor = 1) {
+  return calculateTaxBreakdown(income, thresholdFactor).totalTax;
 }
 
 /**
@@ -341,8 +370,10 @@ export function calculatePensionForecast(params) {
     rp.totalIncomeReal = rp.totalSalaryReal;
     rp.totalIncomeNominal = rp.totalSalaryNominal;
     rp.incomeTaxNominal = retireTax.taxNominal;
+    rp.incomeTaxReal = retireTax.taxNominal / totalInflationDeflator;
     rp.netIncomeNominal = retireTax.netNominal;
     rp.netIncomeReal = retireTax.netReal;
+    rp.effectiveTaxRate = rp.totalIncomeNominal > 0 ? (retireTax.taxNominal / rp.totalIncomeNominal) * 100 : 0;
     rp.cumulativeWithdrawalsNominal = cumulativeWithdrawalsNominal;
     rp.cumulativeWithdrawalsReal = cumulativeWithdrawalsReal;
     rp.isPotDepleted = currentDrawdownPotNominal <= 0;
@@ -433,8 +464,12 @@ export function calculatePensionForecast(params) {
       totalIncomeNominal: actualWithdrawalNominal + (spActive ? spNominal : 0),
       totalIncomeReal: actualWithdrawalReal + (spActive ? spReal : 0),
       incomeTaxNominal: yearTax,
+      incomeTaxReal: yearTax / inflationFactor,
       netIncomeNominal: actualWithdrawalNominal + (spActive ? spNominal : 0) - yearTax,
       netIncomeReal: actualWithdrawalReal + (spActive ? spReal : 0) - yearTax / inflationFactor,
+      effectiveTaxRate: (actualWithdrawalNominal + (spActive ? spNominal : 0)) > 0
+        ? (yearTax / (actualWithdrawalNominal + (spActive ? spNominal : 0))) * 100
+        : 0,
       privateDropPercent,
       cumulativeWithdrawalsNominal,
       cumulativeWithdrawalsReal,
@@ -532,27 +567,41 @@ export function calculatePensionForecast(params) {
       publicIncomeMonthlyNominal: monthlyStatePensionNominal,
       privateSharePercent,
       publicSharePercent,
-      // Combined Income at retirement
+      // Combined Gross Income at retirement
       totalAnnualIncomeNominal,
       totalMonthlyIncomeNominal,
       totalAnnualIncomeReal,
       totalMonthlyIncomeReal,
       // After-tax income at retirement (UK income tax, rUK bands)
       incomeTaxAnnualNominal: retireTax.taxNominal,
+      incomeTaxMonthlyNominal: retireTax.taxNominal / 12,
+      incomeTaxAnnualReal: retireTax.taxNominal / totalInflationDeflator,
+      incomeTaxMonthlyReal: (retireTax.taxNominal / totalInflationDeflator) / 12,
+      effectiveTaxRate: totalAnnualIncomeNominal > 0 ? (retireTax.taxNominal / totalAnnualIncomeNominal) * 100 : 0,
+
       netAnnualIncomeNominal: retireTax.netNominal,
       netMonthlyIncomeNominal: retireTax.netNominal / 12,
       netAnnualIncomeReal: retireTax.netReal,
       netMonthlyIncomeReal: retireTax.netReal / 12,
-      fullCombinedNetAnnualReal: fullCombinedTax.netReal,
-      fullCombinedNetMonthlyReal: fullCombinedTax.netReal / 12,
-      privateTaxableFraction,
-      // Contribution limit warnings (first age each limit was hit, or null)
-      contributionWarnings,
-      // Full Combined (once state pension commences)
+
+      // Full Combined (once State Pension commences)
       fullCombinedAnnualNominal,
       fullCombinedMonthlyNominal,
       fullCombinedAnnualReal,
       fullCombinedMonthlyReal,
+      fullCombinedIncomeTaxAnnualNominal: fullCombinedTax.taxNominal,
+      fullCombinedIncomeTaxMonthlyNominal: fullCombinedTax.taxNominal / 12,
+      fullCombinedIncomeTaxAnnualReal: fullCombinedTax.taxNominal / Math.pow(1 + inflationRate, spStartYear),
+      fullCombinedIncomeTaxMonthlyReal: (fullCombinedTax.taxNominal / Math.pow(1 + inflationRate, spStartYear)) / 12,
+      fullCombinedEffectiveTaxRate: fullCombinedAnnualNominal > 0 ? (fullCombinedTax.taxNominal / fullCombinedAnnualNominal) * 100 : 0,
+      fullCombinedNetAnnualNominal: fullCombinedTax.netNominal,
+      fullCombinedNetMonthlyNominal: fullCombinedTax.netNominal / 12,
+      fullCombinedNetAnnualReal: fullCombinedTax.netReal,
+      fullCombinedNetMonthlyReal: fullCombinedTax.netReal / 12,
+
+      privateTaxableFraction,
+      // Contribution limit warnings (first age each limit was hit, or null)
+      contributionWarnings,
       // External SIPP Contributions Summary
       externalSippMonthlyNet,
       sippNetAnnual,

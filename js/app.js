@@ -133,6 +133,19 @@ const elements = {
   heroIncomeSub: document.getElementById('hero-income-sub'),
   heroIncomeNominal: document.getElementById('hero-income-nominal'),
   heroInflationNote: document.getElementById('hero-inflation-note'),
+  heroIncomeNet: document.getElementById('hero-income-net'),
+  heroIncomeNetVal: document.getElementById('hero-income-net-val'),
+  heroIncomeNetTax: document.getElementById('hero-income-net-tax'),
+  // Hero Gross vs Net Tax Breakdown
+  heroTaxBreakdownCard: document.getElementById('hero-tax-breakdown-card'),
+  heroTaxEffectiveBadge: document.getElementById('hero-tax-effective-badge'),
+  heroGrossVal: document.getElementById('hero-gross-val'),
+  heroGrossSub: document.getElementById('hero-gross-sub'),
+  heroTaxVal: document.getElementById('hero-tax-val'),
+  heroTaxSub: document.getElementById('hero-tax-sub'),
+  heroNetVal: document.getElementById('hero-net-val'),
+  heroNetSub: document.getElementById('hero-net-sub'),
+  heroTaxExplainer: document.getElementById('hero-tax-explainer'),
   // Hero Age Explorer Slider & Ratio Bar
   heroAgeSlider: document.getElementById('heroAgeSlider'),
   heroViewAgeDisplay: document.getElementById('hero-view-age-display'),
@@ -170,6 +183,9 @@ const elements = {
   metricPotIncNominal: document.getElementById('metric-potinc-nominal'),
   metricSpReal: document.getElementById('metric-sp-real'),
   metricSpNominal: document.getElementById('metric-sp-nominal'),
+  metricNetReal: document.getElementById('metric-net-real'),
+  metricNetNominal: document.getElementById('metric-net-nominal'),
+  metricNetTaxTag: document.getElementById('metric-net-tax-tag'),
   metricReplacementRate: document.getElementById('metric-replacement-rate'),
   metricFinalSalary: document.getElementById('metric-final-salary'),
   metricAge100Real: document.getElementById('metric-age100-real'),
@@ -1162,12 +1178,63 @@ function updateHeroCardAtAge(targetAge) {
     elements.heroInflationNote.textContent = `Future nominal value after ${inputs.inflationRate}% inflation over ${compoundingYrs} yrs`;
   }
 
-  // After-tax income (UK income tax on drawdown + State Pension)
-  const heroNetEl = document.getElementById('hero-income-net');
-  if (heroNetEl) {
-    const netVal = (state.viewMode === 'nominal' ? (point.netIncomeNominal || 0) : (point.netIncomeReal || 0)) * mult;
-    const taxVal = (point.incomeTaxNominal || 0) / (state.viewMode === 'nominal' ? 1 : (point.inflationFactor || 1)) * mult;
-    heroNetEl.textContent = `After income tax: ${formatGBP(netVal)} ${unit} (tax ${formatGBP(taxVal)})`;
+  // After-tax take-home income & tax breakdown (UK income tax on drawdown + State Pension)
+  const grossValNom = totalNom;
+  const grossValReal = totalReal;
+  const taxValNom = (point.incomeTaxNominal || 0) * mult;
+  const taxValReal = (point.incomeTaxReal !== undefined ? point.incomeTaxReal : ((point.incomeTaxNominal || 0) / (point.inflationFactor || 1))) * mult;
+  const netValNom = (point.netIncomeNominal !== undefined ? point.netIncomeNominal * mult : (grossValNom - taxValNom));
+  const netValReal = (point.netIncomeReal !== undefined ? point.netIncomeReal * mult : (grossValReal - taxValReal));
+  const effectiveTaxPct = point.effectiveTaxRate !== undefined 
+    ? point.effectiveTaxRate 
+    : (grossValNom > 0 ? (taxValNom / grossValNom) * 100 : 0);
+
+  // Update Hero Callout Badge
+  if (elements.heroIncomeNetVal && elements.heroIncomeNetTax) {
+    if (state.viewMode === 'nominal') {
+      elements.heroIncomeNetVal.textContent = `${formatGBP(netValNom)} ${unit}`;
+      elements.heroIncomeNetTax.textContent = `(after -${formatGBP(taxValNom)} ${unit} tax)`;
+    } else {
+      elements.heroIncomeNetVal.textContent = `${formatGBP(netValReal)} ${unit}`;
+      elements.heroIncomeNetTax.textContent = `(after -${formatGBP(taxValReal)} ${unit} future tax)`;
+    }
+  }
+
+  // Update Gross vs Net Tax Breakdown Card
+  if (elements.heroTaxEffectiveBadge) {
+    elements.heroTaxEffectiveBadge.textContent = `Effective Tax: ${effectiveTaxPct.toFixed(1)}%`;
+  }
+
+  if (elements.heroGrossVal && elements.heroTaxVal && elements.heroNetVal) {
+    if (state.viewMode === 'nominal') {
+      elements.heroGrossVal.textContent = `${formatGBP(grossValNom)} ${unit}`;
+      if (elements.heroGrossSub) elements.heroGrossSub.textContent = `In Today's Money: ${formatGBP(grossValReal)} ${unit}`;
+
+      elements.heroTaxVal.textContent = `-${formatGBP(taxValNom)} ${unit}`;
+      if (elements.heroTaxSub) elements.heroTaxSub.textContent = `In Today's Money: -${formatGBP(taxValReal)} ${unit}`;
+
+      elements.heroNetVal.textContent = `${formatGBP(netValNom)} ${unit}`;
+      if (elements.heroNetSub) elements.heroNetSub.textContent = `In Today's Money: ${formatGBP(netValReal)} ${unit}`;
+    } else {
+      elements.heroGrossVal.textContent = `${formatGBP(grossValReal)} ${unit}`;
+      if (elements.heroGrossSub) elements.heroGrossSub.textContent = `Nominal: ${formatGBP(grossValNom)} ${unit}`;
+
+      elements.heroTaxVal.textContent = `-${formatGBP(taxValReal)} ${unit}`;
+      if (elements.heroTaxSub) elements.heroTaxSub.textContent = `Nominal: -${formatGBP(taxValNom)} ${unit}`;
+
+      elements.heroNetVal.textContent = `${formatGBP(netValReal)} ${unit}`;
+      if (elements.heroNetSub) elements.heroNetSub.textContent = `Nominal: ${formatGBP(netValNom)} ${unit}`;
+    }
+  }
+
+  if (elements.heroTaxExplainer) {
+    const pclsText = inputs.takeLumpSum
+      ? `25% tax-free lump sum taken upfront (${inputs.lumpSumPercent}%); drawdown withdrawals are taxable.`
+      : `UFPLS strategy: 25% of each drawdown withdrawal is tax-free; remaining 75% is taxable.`;
+    const spText = point.statePensionActive
+      ? `UK State Pension (${formatGBP(spReal * (isMonthly ? 12 : 1))}/yr) is included in taxable income.`
+      : `State Pension commences at age ${inputs.statePensionAge}.`;
+    elements.heroTaxExplainer.textContent = `UK Personal Allowance (£12,570 frozen to 2031, indexed thereafter) applied. ${pclsText} ${spText}`;
   }
 
   // Monthly Breakdown (Private Pot vs UK Public State Pension)
@@ -1282,6 +1349,18 @@ function updateResultsUI() {
   elements.metricSpReal.textContent = `${formatGBP(spIncomeValReal)} ${unit}`;
   elements.metricSpNominal.textContent = `${formatGBP(spIncomeValNom)} ${unit}`;
 
+  // Net Take-Home Metric Card (After Tax)
+  if (elements.metricNetReal && elements.metricNetNominal) {
+    const netValReal = isMonthly ? summary.netMonthlyIncomeReal : summary.netAnnualIncomeReal;
+    const netValNom = isMonthly ? summary.netMonthlyIncomeNominal : summary.netAnnualIncomeNominal;
+    const taxValReal = isMonthly ? summary.incomeTaxMonthlyReal : summary.incomeTaxAnnualReal;
+    elements.metricNetReal.textContent = `${formatGBP(netValReal)} ${unit}`;
+    elements.metricNetNominal.textContent = `${formatGBP(netValNom)} ${unit}`;
+    if (elements.metricNetTaxTag) {
+      elements.metricNetTaxTag.textContent = `Est. Tax: -${formatGBP(taxValReal)} ${unit} (${summary.effectiveTaxRate.toFixed(1)}%)`;
+    }
+  }
+
   elements.metricReplacementRate.textContent = `${summary.replacementRate.toFixed(1)}%`;
   elements.metricFinalSalary.textContent = formatGBP(summary.finalSalaryNominal);
 
@@ -1378,11 +1457,25 @@ function renderComparisonTable(summary, isMonthly) {
       note: 'Triple-lock protects 100% purchasing power'
     },
     {
-      label: 'Total Combined Retirement Income',
+      label: 'Total Combined Retirement Income (Gross)',
       nominal: `<strong>${formatGBP(summary.fullCombinedAnnualNominal * mult)}${unit}</strong>`,
-      real: `<strong style="color:var(--emerald);">${formatGBP(summary.fullCombinedAnnualReal * mult)}${unit}</strong>`,
+      real: `<strong style="color:var(--primary);">${formatGBP(summary.fullCombinedAnnualReal * mult)}${unit}</strong>`,
       loss: `<span class="badge-loss">-${(((summary.fullCombinedAnnualNominal - summary.fullCombinedAnnualReal) / summary.fullCombinedAnnualNominal) * 100).toFixed(1)}%</span>`,
-      note: 'Private pot drawdown + UK State Pension'
+      note: 'Gross Private pot drawdown + UK State Pension'
+    },
+    {
+      label: 'Estimated Future Income Tax',
+      nominal: `<span class="text-amber">-${formatGBP((summary.fullCombinedIncomeTaxAnnualNominal || summary.incomeTaxAnnualNominal) * mult)}${unit}</span>`,
+      real: `<span class="text-amber">-${formatGBP((summary.fullCombinedIncomeTaxAnnualReal || summary.incomeTaxAnnualReal) * mult)}${unit}</span>`,
+      loss: `<span class="badge-tag info">Effective: ${(summary.fullCombinedEffectiveTaxRate || summary.effectiveTaxRate || 0).toFixed(1)}%</span>`,
+      note: 'UK income tax on pot drawdown + State Pension (rUK tax bands)'
+    },
+    {
+      label: 'Net Combined Retirement Income (Take-Home)',
+      nominal: `<strong>${formatGBP((summary.fullCombinedNetAnnualNominal || (summary.fullCombinedAnnualNominal - summary.incomeTaxAnnualNominal)) * mult)}${unit}</strong>`,
+      real: `<strong style="color:var(--emerald);">${formatGBP((summary.fullCombinedNetAnnualReal || (summary.fullCombinedAnnualReal - summary.incomeTaxAnnualReal)) * mult)}${unit}</strong>`,
+      loss: `<span class="badge-loss">-${lossPct}%</span>`,
+      note: 'Spendable net disposable income deposited in your account after all income tax'
     },
     {
       label: 'Remaining Pot Balance at Age 100',
@@ -1411,7 +1504,7 @@ function renderComparisonTable(summary, isMonthly) {
       </td>
       <td class="text-right font-mono">${r.nominal}</td>
       <td class="text-right font-mono">${r.real}</td>
-      <td class="text-right font-mono">${r.loss.includes('badge-loss') ? r.loss : `<span class="badge-loss">${r.loss}</span>`}</td>
+      <td class="text-right font-mono">${r.loss.includes('badge') ? r.loss : `<span class="badge-loss">${r.loss}</span>`}</td>
     </tr>
   `).join('');
 }
@@ -1445,7 +1538,8 @@ function renderScheduleTable(timeline) {
       contribOrWithdrawal = `<span style="color:#059669;">+${formatGBP(row.totalContrib)}</span>`;
     } else {
       phaseBadge = `<span class="badge-phase-cell draw">Drawdown</span>`;
-      cashFlow = `Income: ${formatGBP(row.totalIncomeReal)}/yr`;
+      const netVal = row.netIncomeReal !== undefined ? row.netIncomeReal : (row.totalIncomeReal - (row.incomeTaxReal || 0));
+      cashFlow = `Gross: ${formatGBP(row.totalIncomeReal)} <span style="color:#059669; font-weight:600;">(Net: ${formatGBP(netVal)})</span>`;
       contribOrWithdrawal = row.isPotDepleted 
         ? `<span class="text-red">£0 (Depleted)</span>`
         : `<span style="color:#dc2626;">-${formatGBP(row.potDrawdownNominal)}</span>`;
@@ -1474,7 +1568,8 @@ function exportToCSV() {
   const headers = [
     'Age', 'Year', 'Phase', 'Annual Salary (£)', 'Workplace Contrib (£)', 'SIPP Net Contrib (£)', 
     'SIPP HMRC Relief (£)', 'Total Contrib (£)', 'Pot Drawdown (£)', 'State Pension (£)', 
-    'Total Income (£)', 'Investment Gain (£)', 'Closing Pot Nominal (£)', 'Closing Pot Real (£)', 'Inflation Factor'
+    'Total Gross Income (£)', 'Income Tax (£)', 'Net Take-Home (£)', 'Investment Gain (£)', 
+    'Closing Pot Nominal (£)', 'Closing Pot Real (£)', 'Inflation Factor'
   ];
 
   const rows = currentForecast.timeline.map(d => [
@@ -1489,6 +1584,8 @@ function exportToCSV() {
     (d.potDrawdownNominal || 0).toFixed(2),
     (d.statePensionNominal || 0).toFixed(2),
     (d.totalIncomeNominal || 0).toFixed(2),
+    (d.incomeTaxNominal || 0).toFixed(2),
+    (d.netIncomeNominal || 0).toFixed(2),
     (d.investmentGain || 0).toFixed(2),
     (d.closingPotNominal || 0).toFixed(2),
     (d.closingPotReal || 0).toFixed(2),

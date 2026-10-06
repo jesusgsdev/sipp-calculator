@@ -751,6 +751,160 @@ input:checked + .switch-slider:before {
   color: #bae6fd;
 }
 
+/* Hero Net Callout */
+.hero-net-callout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  border-radius: 9999px;
+  padding: 4px 14px;
+  margin-top: 8px;
+  font-size: 0.875rem;
+  color: #ecfdf5;
+}
+
+.hero-net-callout .net-pill-tag {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: #a7f3d0;
+}
+
+.hero-net-callout strong {
+  font-family: var(--font-mono);
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+
+.hero-net-callout .net-tax-sub {
+  font-size: 0.78rem;
+  color: #bae6fd;
+}
+
+/* Gross vs Net Monthly Tax Breakdown Card */
+.hero-tax-breakdown-card {
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(8px);
+}
+
+.tax-breakdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tax-breakdown-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e0f2fe;
+}
+
+.tax-effective-badge {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fef08a;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.tax-breakdown-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 680px) {
+  .tax-breakdown-grid {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .tax-pill-op {
+    display: none;
+  }
+}
+
+.tax-pill-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  text-align: center;
+}
+
+.tax-pill-card.gross {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.tax-pill-card.tax {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.tax-pill-card.net {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.16);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+}
+
+.tax-pill-label {
+  font-size: 0.725rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #bae6fd;
+  margin-bottom: 4px;
+}
+
+.tax-pill-amount {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.tax-pill-sub {
+  font-size: 0.7rem;
+  color: #bae6fd;
+  margin-top: 3px;
+}
+
+.tax-pill-op {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #94a3b8;
+  padding: 0 4px;
+}
+
+.tax-breakdown-explainer {
+  font-size: 0.75rem;
+  color: #bae6fd;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  line-height: 1.4;
+}
+
 /* SIPP Tax Relief Box */
 .sipp-tax-relief-box {
   margin-top: 10px;
@@ -1127,12 +1281,12 @@ input:checked + .switch-slider:before {
 /* Metric Grid */
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
   .metric-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1147,6 +1301,11 @@ input:checked + .switch-slider:before {
 .metric-card {
   padding: 18px;
   margin-bottom: 0;
+}
+
+.highlight-net-card {
+  border-color: #86efac;
+  background: linear-gradient(to bottom, #ffffff, #f0fdf4);
 }
 
 .metric-header {
@@ -1176,6 +1335,7 @@ input:checked + .switch-slider:before {
 .invest-icon { background: #f3e8ff; color: #9333ea; }
 .income-icon { background: #ffedd5; color: #ea580c; }
 .state-icon { background: #e0e7ff; color: #4f46e5; }
+.net-icon { background: #dcfce7; color: #15803d; }
 .percent-icon { background: #fef3c7; color: #d97706; }
 .age100-icon { background: #ccfbf1; color: #0f766e; }
 
@@ -1269,6 +1429,13 @@ input:checked + .switch-slider:before {
 .legend-color.nominal { background: #0284c7; }
 .legend-color.real { background: #10b981; }
 .legend-color.contrib { background: #f59e0b; }
+.legend-color.net-legend-item {
+  background: #10b981;
+  border: 1px dashed #047857;
+}
+
+.text-emerald { color: #10b981 !important; }
+.text-amber { color: #f59e0b !important; }
 
 .chart-wrapper {
   position: relative;

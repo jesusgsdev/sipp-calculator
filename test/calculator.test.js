@@ -311,6 +311,42 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   console.log('✓ Test 14 passed: First-year withdrawal deducted');
 }
 
+// Test 15: Gross vs Net monthly income and tax breakdown
+{
+  const res = calculatePensionForecast({
+    currentAge: 30,
+    retirementAge: 67,
+    annualSalary: 45000,
+    contributionType: 'percent',
+    employeeContribution: 5,
+    employerContributionPercent: 3,
+    inflationRate: 2.5,
+    investmentGrowthRate: 6.0,
+    feeRate: 0.5,
+    drawdownRate: 4.0,
+    takeLumpSum: true,
+    includeStatePension: true,
+    statePensionAge: 67
+  });
+
+  const s = res.summary;
+  assert.ok(s.totalMonthlyIncomeReal > 0, 'Gross monthly real > 0');
+  assert.ok(s.netMonthlyIncomeReal > 0, 'Net monthly real > 0');
+  assert.ok(s.netMonthlyIncomeReal < s.totalMonthlyIncomeReal, 'Net monthly real is lower than Gross monthly real');
+  assert.ok(s.incomeTaxMonthlyReal > 0, 'Estimated monthly income tax > 0');
+  assert.ok(Math.abs((s.totalMonthlyIncomeReal - s.incomeTaxMonthlyReal) - s.netMonthlyIncomeReal) < 0.01, 'Gross - Tax equals Net monthly real');
+  assert.ok(Math.abs((s.totalMonthlyIncomeNominal - s.incomeTaxMonthlyNominal) - s.netMonthlyIncomeNominal) < 0.01, 'Gross - Tax equals Net monthly nominal');
+  assert.ok(s.effectiveTaxRate > 0 && s.effectiveTaxRate < 40, 'Effective tax rate is reasonable');
+
+  // Verify timeline points include net income and tax fields
+  const pt67 = res.timeline.find(d => d.age === 67);
+  assert.ok(pt67.incomeTaxNominal > 0, 'Point 67 has income tax nominal');
+  assert.ok(pt67.netIncomeReal > 0, 'Point 67 has net income real');
+  assert.ok(pt67.effectiveTaxRate > 0, 'Point 67 has effective tax rate');
+
+  console.log('✓ Test 15 passed: Gross vs Net monthly estimation and tax breakdown verified');
+}
+
 console.log('ALL TESTS PASSED SUCCESSFULLY! 🎉');
 
 

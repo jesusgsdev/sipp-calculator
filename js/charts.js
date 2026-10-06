@@ -448,6 +448,9 @@ export function renderIncomeComparisonChart(containerEl, summary, isMonthly = tr
 
   const multiplier = isMonthly ? 1 / 12 : 1;
 
+  const netNominal = (summary.fullCombinedNetAnnualNominal || (summary.fullCombinedAnnualNominal - summary.incomeTaxAnnualNominal)) * multiplier;
+  const netReal = (summary.fullCombinedNetAnnualReal || (summary.fullCombinedAnnualReal - (summary.incomeTaxAnnualReal || (summary.incomeTaxAnnualNominal / summary.totalInflationDeflator)))) * multiplier;
+
   const categories = [
     {
       label: 'Pot Drawdown',
@@ -460,9 +463,15 @@ export function renderIncomeComparisonChart(containerEl, summary, isMonthly = tr
       real: summary.statePensionAnnualReal * multiplier
     },
     {
-      label: 'Total Combined',
+      label: 'Gross Combined',
       nominal: summary.fullCombinedAnnualNominal * multiplier,
       real: summary.fullCombinedAnnualReal * multiplier
+    },
+    {
+      label: 'Net Take-Home',
+      nominal: netNominal,
+      real: netReal,
+      isNet: true
     }
   ];
 
@@ -721,6 +730,20 @@ export function renderPurchasingPowerIncomeChart(containerEl, timeline, retireme
   totalLine.setAttribute('stroke-width', '3');
   svg.appendChild(totalLine);
 
+  // Net Take-Home Salary Line (After Tax)
+  const netLinePath = retireTimeline.map((pt, i) => {
+    const netVal = (pt.netIncomeReal !== undefined ? pt.netIncomeReal : (pt.totalIncomeReal - (pt.incomeTaxReal || 0))) * mult;
+    return `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(Math.max(0, netVal))}`;
+  }).join(' ');
+
+  const netLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  netLine.setAttribute('d', netLinePath);
+  netLine.setAttribute('fill', 'none');
+  netLine.setAttribute('stroke', '#10b981');
+  netLine.setAttribute('stroke-width', '2.5');
+  netLine.setAttribute('stroke-dasharray', '5 4');
+  svg.appendChild(netLine);
+
   // Visual Annotations on Chart
   // 1. Triple lock label along the public line
   const midIndex = Math.round(retireTimeline.length * 0.45);
@@ -755,10 +778,11 @@ export function renderPurchasingPowerIncomeChart(containerEl, timeline, retireme
   svg.appendChild(hoverLine);
 
   const dotTotal = createDot('#0284c7');
+  const dotNet = createDot('#10b981');
   const dotPublic = createDot('#8b5cf6');
   const hoverDotsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   hoverDotsGroup.style.display = 'none';
-  hoverDotsGroup.append(dotTotal, dotPublic);
+  hoverDotsGroup.append(dotTotal, dotNet, dotPublic);
   svg.appendChild(hoverDotsGroup);
 
   const tooltip = document.createElement('div');
@@ -790,12 +814,17 @@ export function renderPurchasingPowerIncomeChart(containerEl, timeline, retireme
     const spVal = (pt.statePensionActive ? pt.statePensionReal : 0) * mult;
     const privVal = pt.potDrawdownReal * mult;
     const totalVal = spVal + privVal;
+    const taxVal = (pt.incomeTaxReal !== undefined ? pt.incomeTaxReal : ((pt.incomeTaxNominal || 0) / (pt.inflationFactor || 1))) * mult;
+    const netVal = (pt.netIncomeReal !== undefined ? pt.netIncomeReal : (totalVal - taxVal)) * mult;
 
     const yTot = yScale(totalVal);
+    const yNet = yScale(Math.max(0, netVal));
     const yPub = yScale(spVal);
 
     dotTotal.setAttribute('cx', xPos);
     dotTotal.setAttribute('cy', yTot);
+    dotNet.setAttribute('cx', xPos);
+    dotNet.setAttribute('cy', yNet);
     dotPublic.setAttribute('cx', xPos);
     dotPublic.setAttribute('cy', yPub);
     hoverDotsGroup.style.display = 'block';
@@ -804,14 +833,18 @@ export function renderPurchasingPowerIncomeChart(containerEl, timeline, retireme
       ? `<span class="badge-loss">${pt.privateDropPercent.toFixed(1)}% vs Year 1</span>`
       : `<span style="color:#059669; font-weight:600;">Day 1 Baseline</span>`;
 
+    const effectiveTaxStr = pt.effectiveTaxRate ? `${pt.effectiveTaxRate.toFixed(1)}%` : (totalVal > 0 ? `${((taxVal / totalVal) * 100).toFixed(1)}%` : '0%');
+
     tooltip.innerHTML = `
       <div class="tooltip-header">
         <span>Age ${pt.age} (${pt.age - retirementAge} yrs retired)</span>
         <span class="badge-phase retirement">Today's Money</span>
       </div>
-      <div class="tooltip-row"><span class="badge-dot" style="background:#0284c7"></span> Total Combined Salary: <strong>${formatGBP(totalVal)} ${unitLabel}</strong></div>
-      <div class="tooltip-row"><span class="badge-dot" style="background:#10b981"></span> Private Pot Drawdown: <strong>${formatGBP(privVal)} ${unitLabel}</strong> (${dropText})</div>
-      <div class="tooltip-row"><span class="badge-dot" style="background:#8b5cf6"></span> Public State Pension: <strong>${formatGBP(spVal)} ${unitLabel}</strong> (100% constant)</div>
+      <div class="tooltip-row"><span class="badge-dot" style="background:#0284c7"></span> Gross Combined: <strong>${formatGBP(totalVal)} ${unitLabel}</strong></div>
+      <div class="tooltip-row"><span class="badge-dot" style="background:#f59e0b"></span> Est. Future Tax: <strong style="color:#d97706;">-${formatGBP(taxVal)} ${unitLabel}</strong> (${effectiveTaxStr})</div>
+      <div class="tooltip-row"><span class="badge-dot" style="background:#10b981"></span> Net Take-Home: <strong style="color:#059669;">${formatGBP(netVal)} ${unitLabel}</strong></div>
+      <div class="tooltip-row"><span class="badge-dot" style="background:#059669"></span> Private Drawdown: <strong>${formatGBP(privVal)} ${unitLabel}</strong> (${dropText})</div>
+      <div class="tooltip-row"><span class="badge-dot" style="background:#8b5cf6"></span> State Pension: <strong>${formatGBP(spVal)} ${unitLabel}</strong> (100% constant)</div>
       <div class="tooltip-row small-muted">Inflation deflator applied: ÷${pt.inflationFactor.toFixed(2)}x</div>
     `;
     tooltip.style.display = 'block';
