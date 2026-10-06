@@ -69,8 +69,9 @@ export function calculatePensionForecast(params) {
   }
 
   const takeLumpSum = params.takeLumpSum !== false;
-  const lumpSumPercent = takeLumpSum ? Math.min(25, Math.max(0, Number(params.lumpSumPercent) || 25)) / 100 : 0;
-  const drawdownRate = (Number(params.drawdownRate) || 4.0) / 100;
+  const numOr = (v, d) => (v === undefined || v === null || v === '' || isNaN(Number(v))) ? d : Number(v);
+  const lumpSumPercent = takeLumpSum ? Math.min(25, Math.max(0, numOr(params.lumpSumPercent, 25))) / 100 : 0;
+  const drawdownRate = Math.max(0, numOr(params.drawdownRate, UK_DEFAULTS.DEFAULT_DRAWDOWN_RATE)) / 100;
 
   const includeStatePension = params.includeStatePension !== false;
   const baselineStatePension = Math.max(0, Number(params.statePensionAnnual) || UK_DEFAULTS.CURRENT_FULL_STATE_PENSION_ANNUAL);
@@ -153,7 +154,7 @@ export function calculatePensionForecast(params) {
       cumulativeSippNetNominal,
       cumulativeSippHmrcReliefNominal,
       cumulativeSippGrossNominal: cumulativeSippNetNominal + cumulativeSippHmrcReliefNominal,
-      cumulativeGrowthNominal: cumulativeGrowthNominal + (initialPot * (Math.pow(1 + netGrowthRate, year) - 1)),
+      cumulativeGrowthNominal,
       inflationFactor
     };
 
@@ -191,7 +192,8 @@ export function calculatePensionForecast(params) {
   const isEligibleForStatePension = includeStatePension && (retirementAge >= statePensionAge);
 
   if (includeStatePension) {
-    const spDeflator = Math.pow(1 + inflationRate, Math.max(0, statePensionAge - currentAge));
+    // Nominal value at the first year it is received alongside the pot income (later of SPA and retirement)
+    const spDeflator = Math.pow(1 + inflationRate, Math.max(0, Math.max(statePensionAge, retirementAge) - currentAge));
     annualStatePensionNominal = baselineStatePension * spDeflator;
     annualStatePensionReal = baselineStatePension;
   }
@@ -271,9 +273,16 @@ export function calculatePensionForecast(params) {
       } else {
         // Flat Real Income (Bengen Rule): constant purchasing power until depletion
         const desiredWithdrawalNominal = initialWithdrawalReal * inflationFactor;
-        actualWithdrawalNominal = Math.min(startPot, desiredWithdrawalNominal);
-        investmentGain = (startPot * netGrowthRate) - (actualWithdrawalNominal * (netGrowthRate / 2));
-        currentDrawdownPotNominal = startPot - actualWithdrawalNominal + investmentGain;
+        const maxAvailable = startPot * (1 + netGrowthRate / 2); // pot incl. growth if fully drawn mid-year
+        if (desiredWithdrawalNominal >= maxAvailable) {
+          actualWithdrawalNominal = maxAvailable;
+          investmentGain = maxAvailable - startPot;
+          currentDrawdownPotNominal = 0;
+        } else {
+          actualWithdrawalNominal = desiredWithdrawalNominal;
+          investmentGain = (startPot * netGrowthRate) - (actualWithdrawalNominal * (netGrowthRate / 2));
+          currentDrawdownPotNominal = startPot - actualWithdrawalNominal + investmentGain;
+        }
       }
 
       if (currentDrawdownPotNominal <= 0.01) {
