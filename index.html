@@ -3,8 +3,116 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UK Pension & SIPP Forecast Calculator | Nominal & Inflation-Adjusted</title>
-  <meta name="description" content="UK pension forecast calculator following UK guidelines. Model workplace pensions and SIPPs, 25% tax-free lump sum drawdown, triple-lock State Pension, and compare nominal vs real inflation-adjusted income.">
+  <title>UK Pension & SIPP Forecast Calculator | Real vs Nominal Income & Tax</title>
+  <meta name="description" content="Free, private in-browser UK pension and SIPP forecaster. Model workplace auto-enrolment, personal SIPPs with HMRC tax relief, 25% tax-free lump sum (PCLS capped at £268,275), Triple Lock State Pension, and net monthly income after tax.">
+  <meta name="keywords" content="UK pension calculator, SIPP calculator, workplace pension forecast, pension drawdown calculator, UK state pension triple lock, 25% tax free lump sum PCLS, £268275 lump sum allowance, inflation adjusted pension, retirement income tax calculator UK, FIRE UK pension, pension pot trajectory to age 100">
+  <meta name="author" content="Jesus Garcia">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <link rel="canonical" href="https://jesusgsdev.github.io/sipp-calculator/">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:url" content="https://jesusgsdev.github.io/sipp-calculator/">
+  <meta property="og:site_name" content="UK Pension & SIPP Forecaster">
+  <meta property="og:title" content="UK Pension & SIPP Forecast Calculator | Real vs Nominal Income & Tax">
+  <meta property="og:description" content="Free, private in-browser UK pension and SIPP forecaster. Model workplace pensions, personal SIPPs, HMRC tax relief, 25% tax-free lump sum (PCLS up to £268,275), Triple Lock State Pension, and net monthly income after tax.">
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="UK Pension & SIPP Forecast Calculator | Real vs Nominal Income & Tax">
+  <meta name="twitter:description" content="Free, private in-browser UK pension and SIPP forecaster. Model workplace pensions, personal SIPPs, HMRC tax relief, 25% tax-free lump sum (PCLS up to £268,275), Triple Lock State Pension, and net monthly income after tax.">
+
+  <!-- Schema.org JSON-LD Structured Data for Search Engines & AI Crawlers -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://jesusgsdev.github.io/sipp-calculator/#webapp",
+        "name": "UK Pension & SIPP Forecast Calculator",
+        "url": "https://jesusgsdev.github.io/sipp-calculator/",
+        "description": "Comprehensive client-side UK pension and SIPP forecaster modeling workplace pensions, personal SIPPs, HMRC tax relief, 25% tax-free lump sum up to the statutory £268,275 cap, Triple Lock State Pension, and estimated net monthly retirement income after tax.",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "All modern web browsers",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "GBP"
+        },
+        "featureList": [
+          "UK Workplace Auto-Enrolment & Employer Matching",
+          "Personal SIPP with HMRC Basic Rate Tax Relief (+25% gross top-up) and Higher Rate Tax Breakdown",
+          "25% Tax-Free Pension Commencement Lump Sum (PCLS) capped at statutory £268,275 allowance",
+          "Nominal Future Cash vs Real Inflation-Adjusted Purchasing Power (Today's Money)",
+          "UK State Pension with Triple Lock Inflation Parity",
+          "Decumulation & Pot Depletion Modeling to Age 100",
+          "Estimated Post-Retirement Gross and Net Monthly Income after UK Income Tax",
+          "PLSA Retirement Living Standards Benchmarking (Minimum, Moderate, Comfortable)",
+          "Current Age 18-71, Retirement Age 55-72 with Interactive Controls",
+          "Zero tracking, 100% private in-browser local storage"
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://jesusgsdev.github.io/sipp-calculator/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How does the 25% tax-free lump sum (PCLS) work on UK pensions?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Under UK pension rules, you can normally withdraw up to 25% of your defined contribution pension pot tax-free as a Pension Commencement Lump Sum (PCLS). Following the abolition of the Lifetime Allowance by the Finance Act 2024, this tax-free cash is capped at the statutory Lump Sum Allowance (LSA) of £268,275, unless you hold lifetime allowance protections. The remaining 75% remains invested and is subject to UK Income Tax upon withdrawal."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the UK State Pension Triple Lock and how is it projected?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The UK State Pension Triple Lock guarantees that the full State Pension increases each April by the highest of three measures: inflation (September CPI), average wage growth (May-July), or 2.5%. This forecaster models the State Pension (£11,973.60/year in 2025/26, projected £12,548.80 in 2026/27) keeping pace with inflation, preserving 100% of its real purchasing power in today's money."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does HMRC tax relief work on personal SIPP contributions?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "When you contribute to a personal SIPP from net take-home pay, HMRC automatically adds 20% basic rate tax relief at source (a +25% top-up on your net payment). For example, paying £800 net automatically becomes £1,000 gross inside your SIPP. Higher rate (40%) and additional rate (45%) taxpayers can claim an additional 20% or 25% relief through their Self-Assessment tax return or PAYE code adjustments."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Why should I compare nominal vs real pension income?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Nominal values show the actual pounds and pence you will receive in future years, but compounding inflation erodes what that money can buy. A £1,000,000 pot in 30 years at 2.5% annual inflation has the purchasing power of only around £476,743 in today's money. Real (inflation-adjusted) figures eliminate this money illusion so you can plan for your true cost of living."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How is pension drawdown income taxed in retirement?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Pension drawdown withdrawals and State Pension payments are treated as taxable income under UK income tax rates (20% basic rate above £12,570, 40% higher rate above £50,270, and 45% additional rate above £125,140). The Personal Allowance is tapered away by £1 for every £2 of income above £100,000. However, retirees do not pay National Insurance contributions on pension income."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What are the allowed age limits in this pension forecaster?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The calculator allows a current age between 18 and 71, and a target retirement age between 55 and 72 (retirement age must be at least one year greater than current age). The lifetime decumulation simulation models withdrawals, growth, and pot longevity through age 100."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <link rel="stylesheet" href="css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,8 +219,8 @@
                 <span class="value-bubble" id="val-currentAge">30 yrs</span>
               </div>
               <div class="slider-input-combo">
-                <input type="range" id="currentAge" name="currentAge" min="18" max="74" value="30" step="1">
-                <input type="number" id="currentAge-num" min="18" max="74" value="30" class="num-input">
+                <input type="range" id="currentAge" name="currentAge" min="18" max="71" value="30" step="1">
+                <input type="number" id="currentAge-num" min="18" max="71" value="30" class="num-input">
               </div>
             </div>
 
@@ -122,8 +230,8 @@
                 <span class="value-bubble" id="val-retirementAge">67 yrs</span>
               </div>
               <div class="slider-input-combo">
-                <input type="range" id="retirementAge" name="retirementAge" min="55" max="80" value="67" step="1">
-                <input type="number" id="retirementAge-num" min="55" max="80" value="67" class="num-input">
+                <input type="range" id="retirementAge" name="retirementAge" min="55" max="72" value="67" step="1">
+                <input type="number" id="retirementAge-num" min="55" max="72" value="67" class="num-input">
               </div>
               <div class="field-help" id="years-to-retire-text">37 years of compounding remaining</div>
             </div>
@@ -879,6 +987,56 @@
             </div>
           </div>
         </div>
+
+        <!-- UK Pension FAQ & Knowledge Base (Semantic FAQ for Users & AI Search) -->
+        <section class="card faq-section" id="faq" aria-labelledby="faq-heading">
+          <h3 class="card-heading" id="faq-heading">Frequently Asked Questions & UK Pension Guide</h3>
+          <p class="faq-intro">Essential guidance on UK workplace auto-enrolment, personal SIPPs, HMRC tax relief, the £268,275 lump sum allowance, and retirement income tax.</p>
+          
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary class="faq-question">How does the 25% tax-free lump sum (PCLS) work on UK pensions?</summary>
+              <div class="faq-answer">
+                <p>Under UK pension rules, you can normally withdraw up to 25% of your defined contribution pension pot tax-free as a Pension Commencement Lump Sum (PCLS). Following the abolition of the Lifetime Allowance by the Finance Act 2024, this tax-free cash is capped at the statutory Lump Sum Allowance (LSA) of <strong>£268,275</strong>, unless you hold lifetime allowance protections. The remaining 75% remains invested and is subject to UK Income Tax upon withdrawal.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">What is the UK State Pension Triple Lock and how is it projected?</summary>
+              <div class="faq-answer">
+                <p>The UK State Pension Triple Lock guarantees that the full State Pension increases each April by the highest of three measures: inflation (September CPI), average wage growth (May-July), or 2.5%. This forecaster models the State Pension (£11,973.60/year in 2025/26, projected £12,548.80 in 2026/27) keeping pace with inflation, preserving 100% of its real purchasing power in today's money.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">How does HMRC tax relief work on personal SIPP contributions?</summary>
+              <div class="faq-answer">
+                <p>When you contribute to a personal SIPP from net take-home pay, HMRC automatically adds 20% basic rate tax relief at source (a +25% top-up on your net payment). For example, paying £800 net automatically becomes £1,000 gross inside your SIPP. Higher rate (40%) and additional rate (45%) taxpayers can claim an additional 20% or 25% relief through their Self-Assessment tax return or PAYE code adjustments.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">Why should I compare nominal vs real pension income?</summary>
+              <div class="faq-answer">
+                <p>Nominal values show the actual pounds and pence you will receive in future years, but compounding inflation erodes what that money can buy. A £1,000,000 pot in 30 years at 2.5% annual inflation has the purchasing power of only around £476,743 in today's money. Real (inflation-adjusted) figures eliminate this money illusion so you can plan for your true cost of living.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">How is pension drawdown income taxed in retirement?</summary>
+              <div class="faq-answer">
+                <p>Pension drawdown withdrawals and State Pension payments are treated as taxable income under UK income tax rates (20% basic rate above £12,570, 40% higher rate above £50,270, and 45% additional rate above £125,140). The Personal Allowance is tapered away by £1 for every £2 of income above £100,000. However, retirees do not pay National Insurance contributions on pension income.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">What are the allowed age limits in this pension forecaster?</summary>
+              <div class="faq-answer">
+                <p>The calculator allows a current age between 18 and 71, and a target retirement age between 55 and 72 (retirement age must be at least one year greater than current age). The lifetime decumulation simulation models withdrawals, growth, and pot longevity through age 100.</p>
+              </div>
+            </details>
+          </div>
+        </section>
 
       </section>
     </main>

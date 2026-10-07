@@ -347,6 +347,36 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   console.log('✓ Test 15 passed: Gross vs Net monthly estimation and tax breakdown verified');
 }
 
+// Test 16: Maximum current age (71) and maximum retirement age (72) bounds
+{
+  // Exceeding maximum ages
+  const res = calculatePensionForecast({
+    currentAge: 75,
+    retirementAge: 85,
+    annualSalary: 40000,
+    currentPot: 100000
+  });
+
+  assert.equal(res.inputs.currentAge, 71, 'Current age must be clamped to max 71');
+  assert.equal(res.inputs.retirementAge, 72, 'Retirement age must be clamped to max 72');
+  assert.equal(res.summary.yearsToRetire, 1, 'Years to retire is 1 when current age is 71 and retirement age is 72');
+
+  // When retirementAge is specified lower than or equal to currentAge
+  const res2 = calculatePensionForecast({
+    currentAge: 71,
+    retirementAge: 65,
+    annualSalary: 40000,
+    currentPot: 100000
+  });
+
+  assert.equal(res2.inputs.currentAge, 71, 'Current age is 71');
+  assert.equal(res2.inputs.retirementAge, 72, 'Retirement age must be at least currentAge + 1 (72)');
+  assert.equal(res2.summary.yearsToRetire, 1);
+
+  console.log('✓ Test 16 passed: Maximum current age (71) and maximum retirement age (72) enforced');
+}
+
 console.log('ALL TESTS PASSED SUCCESSFULLY! 🎉');
+
 
 

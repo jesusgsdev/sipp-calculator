@@ -90,8 +90,8 @@ export function calculateIncomeTax(income, thresholdFactor = 1) {
  * @param {'basic'|'higher'|'additional'} [params.taxBand='basic'] - Tax band for relief calculation
  */
 export function calculatePensionForecast(params) {
-  const currentAge = Math.max(18, Math.min(75, Number(params.currentAge) || 30));
-  const retirementAge = Math.max(currentAge + 1, Math.min(80, Number(params.retirementAge) || 67));
+  const currentAge = Math.max(18, Math.min(71, Number(params.currentAge) || 30));
+  const retirementAge = Math.max(currentAge + 1, Math.min(72, Number(params.retirementAge) || 67));
   const maxAge = UK_DEFAULTS.MAX_AGE;
   const yearsToRetire = retirementAge - currentAge;
 

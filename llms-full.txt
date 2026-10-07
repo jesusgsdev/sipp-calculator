@@ -1,0 +1,115 @@
+# UK Pension & SIPP Forecaster — Full Specification & Documentation
+
+## Overview
+The UK Pension & SIPP Forecaster is an open-source, client-side financial forecasting application designed specifically for the United Kingdom pension and tax framework. It runs 100% inside the user's browser without external tracking, servers, or cookies.
+
+- Canonical URL: https://jesusgsdev.github.io/sipp-calculator/
+- Repository: https://github.com/jesusgsdev/sipp-calculator
+- License: Open Source (MIT)
+
+---
+
+## 1. Regulatory Context & UK Legislation
+
+### 1.1 Pension Commencement Lump Sum (PCLS) & Lump Sum Allowance (LSA)
+- Under current UK pension legislation (effective from 6 April 2024 following the abolition of the Lifetime Allowance by Finance Act 2024), individuals can generally take up to 25% of their accumulated pension pot as a tax-free lump sum at retirement.
+- **Statutory Cap**: The tax-free amount is capped at the Lump Sum Allowance (LSA) limit of **£268,275** (unless the individual holds protected rights such as Primary, Enhanced, or Fixed Protection).
+- Any excess pension pot above what produces the £268,275 tax-free allowance remains taxable upon withdrawal.
+
+### 1.2 UK State Pension & The Triple Lock
+- **Full New State Pension**:
+  - 2025/26: £230.25 per week (£11,973.00/year).
+  - 2026/27 projection: Upward adjustment under the Triple Lock mechanism (highest of September CPI inflation, average earnings growth, or 2.5%), reaching £241.32/week (£12,548.80/year).
+- **Modeling Assumption**: The Triple Lock is assumed to safeguard real purchasing power, meaning the State Pension grows at least in tandem with the user-selected inflation rate. In "Today's Money (Real £)", the State Pension remains constant in purchasing power, while in future nominal pounds it scales up by $(1 + \text{inflation})^N$.
+
+### 1.3 Personal SIPP Contributions & HMRC Tax Relief
+- **Basic Rate Relief at Source**: For contributions into a registered personal SIPP, an individual pays net from take-home pay. HMRC automatically tops this up by 25% of the net amount (equivalent to 20% tax relief on the gross contribution). For example, £800 net contribution receives a £200 HMRC top-up, totaling £1,000 gross into the pot.
+- **Higher (40%) and Additional (45%) Rate Relief**: Higher-rate taxpayers can claim an additional 20% relief (and additional-rate taxpayers 25%) via Self-Assessment or PAYE tax code adjustments.
+- **Annual Allowance (AA)**: Annual contributions eligible for tax relief are capped at 100% of relevant UK earnings or the statutory £60,000 Annual Allowance (subject to tapering for high earners with adjusted income over £260,000).
+
+### 1.4 Post-Retirement Income Taxation
+Retirement income is subject to UK Income Tax rates (excluding National Insurance):
+- **Personal Allowance**: £12,570 (tax-free).
+  - *Taper*: If total annual taxable income exceeds £100,000, the Personal Allowance is reduced by £1 for every £2 of income above £100,000. It reduces to £0 once income reaches £125,140.
+- **Basic Rate (20%)**: £12,571 to £50,270.
+- **Higher Rate (40%)**: £50,271 to £125,140.
+- **Additional Rate (45%)**: Over £125,140.
+*(Note: Scottish income tax rates vary slightly, but standard UK/English bands are utilized as the national baseline).*
+
+---
+
+## 2. Mathematical Equations & Modeling
+
+### 2.1 Salary Growth
+For each year $t \in [1, N]$, where $N = \text{retirementAge} - \text{currentAge}$:
+$$\text{Salary}_t = \text{Salary}_0 \times (1 + g)^{t-1}$$
+where $g$ is the annual nominal salary increase rate.
+
+### 2.2 Annual Contributions
+- Employee Workplace Contribution:
+  - Percent mode: $C_{\text{emp}, t} = \text{Salary}_t \times p_{\text{emp}}$
+  - Amount mode: $C_{\text{emp}, t} = M_{\text{emp}} \times 12 \times (1 + g)^{t-1}$ (indexed to salary growth)
+- Employer Workplace Contribution:
+  - $C_{\text{er}, t} = \text{Salary}_t \times p_{\text{er}}$
+- Personal SIPP Gross Contribution:
+  - Net contribution: $S_{\text{net}, t} = M_{\text{sipp}} \times 12 \times (1 + g)^{t-1}$
+  - HMRC basic rate tax relief: $S_{\text{HMRC}, t} = S_{\text{net}, t} \times 0.25$
+  - Gross SIPP contribution: $S_{\text{gross}, t} = S_{\text{net}, t} + S_{\text{HMRC}, t}$
+- Total Annual Contribution:
+  - $C_t = \min\left(C_{\text{emp}, t} + C_{\text{er}, t} + S_{\text{gross}, t}, \text{AnnualAllowance}\right)$
+
+### 2.3 Pot Accumulation
+Net annual investment growth rate:
+$$r_{\text{net}} = r_{\text{nominal}} - r_{\text{fee}}$$
+Assuming contributions are spread evenly throughout each year (mid-year compounding convention):
+$$P_t = P_{t-1} \times (1 + r_{\text{net}}) + C_t \times \left(1 + \frac{r_{\text{net}}}{2}\right)$$
+
+### 2.4 Inflation Deflation (Real Purchasing Power)
+To translate future nominal pounds into "Today's Money (Real £)":
+$$\text{Deflator}_t = (1 + i)^t$$
+$$\text{Pot}_{\text{real}, t} = \frac{P_t}{\text{Deflator}_t}$$
+where $i$ is the annual inflation rate.
+
+### 2.5 25% Tax-Free Lump Sum (PCLS)
+At retirement ($t = N$):
+$$\text{LumpSum}_{\text{nominal}} = \min(0.25 \times P_N, £268,275)$$
+$$\text{RemainingPot}_{\text{nominal}} = P_N - \text{LumpSum}_{\text{nominal}}$$
+
+### 2.6 Decumulation & Drawdown (Retirement to Age 100)
+For each age $A \in [\text{retirementAge}, 100]$:
+- Annual withdrawal from remaining pot:
+  $$W_{\text{annual}} = \text{Pot}_{\text{start of year}} \times \text{drawdownRate}$$
+- The pot is debited by $W_{\text{annual}}$, earns investment growth, and is assessed for depletion if $P \le 0$.
+
+### 2.7 Net Retirement Income Estimation
+Total gross retirement income at age $A$:
+$$\text{GrossAnnual} = W_{\text{taxable}} + \text{StatePension}$$
+Taxable income is determined based on the drawdown method:
+- Designated Drawdown: Upfront lump sum already taken; all withdrawals are taxable.
+- UFPLS: 25% of each withdrawal is tax-free; 75% is taxable.
+$$\text{Tax} = \text{CalculateUKIncomeTax}(\text{GrossTaxable})$$
+$$\text{NetMonthly} = \frac{\text{GrossAnnual} - \text{Tax}}{12}$$
+
+---
+
+## 3. Tool Parameters & Limits
+
+- **Current Age**: Min 18, Max 71.
+- **Retirement Age**: Min 55, Max 72 (must be greater than current age).
+- **State Pension Age**: Default 67 (configurable from 66 to 68 based on UK timetable).
+- **Simulation Horizon**: Continues through age 100.
+- **Data Privacy**: All data is stored in `localStorage` in the user's browser. No cookies, no tracking, no backend database.
+
+---
+
+## 4. Frequently Asked Questions (FAQ)
+
+### Q: Why compare Nominal vs Real retirement income?
+A: Over a 30-year accumulation horizon, compounding inflation drastically reduces the real purchasing power of money. A £1,000,000 pot in 30 years at 2.5% inflation has the purchasing power of only ~£476,743 in today's money. Comparing nominal and real figures avoids the illusion of wealth and allows realistic financial planning.
+
+### Q: How does the £268,275 lump sum cap work?
+A: Even if your pension pot is £1,500,000, the maximum 25% tax-free lump sum you can withdraw is capped at £268,275 under UK law. The remaining £1,231,725 must remain invested or be drawn as taxable income.
+
+### Q: Does the State Pension pay immediately upon retirement?
+A: No. If you retire at age 58, you will only receive income from your private pension pot until you reach the official UK State Pension age (currently 66, rising to 67 between 2026 and 2028). The forecaster accurately reflects this bridge period.
+

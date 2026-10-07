@@ -395,6 +395,8 @@ function applyDataToState(data) {
       state[key] = data[key];
     }
   });
+  state.currentAge = Math.max(18, Math.min(71, Number(state.currentAge) || 30));
+  state.retirementAge = Math.max(state.currentAge + 1, Math.min(72, Number(state.retirementAge) || 67));
   isProfileModified = false;
   syncAllInputElements();
   recalculate();
@@ -498,8 +500,9 @@ function bindSliderAndNumber(slider, numInput, labelEl, stateKey, suffix = '%', 
 function setupEventListeners() {
   // Ages
   bindSliderAndNumber(elements.currentAge, elements.currentAgeNum, elements.valCurrentAge, 'currentAge', ' yrs', (val) => {
+    val = Math.max(18, Math.min(71, val));
     if (state.retirementAge <= val) {
-      state.retirementAge = Math.min(80, val + 1);
+      state.retirementAge = Math.min(72, val + 1);
       elements.retirementAge.value = state.retirementAge;
       elements.retirementAgeNum.value = state.retirementAge;
       elements.valRetirementAge.textContent = `${state.retirementAge} yrs`;
@@ -508,8 +511,9 @@ function setupEventListeners() {
   });
 
   bindSliderAndNumber(elements.retirementAge, elements.retirementAgeNum, elements.valRetirementAge, 'retirementAge', ' yrs', (val) => {
+    val = Math.max(55, Math.min(72, val));
     if (val <= state.currentAge) {
-      val = state.currentAge + 1;
+      val = Math.min(72, state.currentAge + 1);
     }
     return val;
   });
