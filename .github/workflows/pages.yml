@@ -38,7 +38,7 @@ jobs:
           cp -r index.html css js _site/
           cp robots.txt sitemap.xml llms.txt llms-full.txt _site/
           touch _site/.nojekyll
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
