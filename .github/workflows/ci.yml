@@ -20,3 +20,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm test
+      - name: Coverage summary
+        if: matrix.node-version == 22
+        run: |
+          echo '### Test coverage (js/calculator.js)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npm run --silent coverage | sed -n '/start of coverage report/,/end of coverage report/p' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

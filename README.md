@@ -3,6 +3,7 @@
 [![CI](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/ci.yml)
 [![Deploy](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/pages.yml/badge.svg)](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/pages.yml)
 [![CodeQL](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/codeql.yml/badge.svg)](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/jesusgsdev/sipp-calculator/badge)](https://scorecard.dev/viewer/?uri=github.com/jesusgsdev/sipp-calculator)
 [![License: MIT](https://img.shields.io/github/license/jesusgsdev/sipp-calculator)](LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/jesusgsdev/sipp-calculator)](https://github.com/jesusgsdev/sipp-calculator/commits/main)
 [![Stars](https://img.shields.io/github/stars/jesusgsdev/sipp-calculator?style=flat)](https://github.com/jesusgsdev/sipp-calculator/stargazers)
@@ -82,7 +83,8 @@ Or open `index.html` directly in your browser.
 Unit tests verify the core financial modeling calculations:
 
 ```bash
-node test/calculator.test.js
+npm test            # Node's built-in test runner, no dependencies
+npm run coverage    # adds a coverage report
 ```
 
 16 comprehensive tests verify:

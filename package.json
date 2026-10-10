@@ -9,7 +9,8 @@
     "url": "git+https://github.com/jesusgsdev/sipp-calculator.git"
   },
   "scripts": {
-    "test": "node test/calculator.test.js"
+    "test": "node --test",
+    "coverage": "node --test --experimental-test-coverage"
   },
   "engines": {
     "node": ">=20"

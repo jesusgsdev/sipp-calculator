@@ -1,10 +1,8 @@
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculatePensionForecast, calculateIncomeTax, UK_DEFAULTS } from '../js/calculator.js';
 
-console.log('--- Running UK Pension Calculator Test Suite ---');
-
-// Test 1: Standard projection with % of salary
-{
+test('Test 1: Standard projection with % of salary', () => {
   const res = calculatePensionForecast({
     currentAge: 30,
     retirementAge: 67,
@@ -36,12 +34,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   // Nominal state pension must be deflated exactly by inflation factor
   const deflator = Math.pow(1.025, 37);
   assert.ok(Math.abs((res.summary.statePensionAnnualNominal / deflator) - res.summary.statePensionAnnualReal) < 0.01, 'Nominal SP discounted by inflation equals Real SP');
+});
 
-  console.log('✓ Test 1 passed: Standard % contribution projection');
-}
-
-// Test 2: Fixed monthly amount input (£)
-{
+test('Test 2: Fixed monthly amount input (£)', () => {
   const res = calculatePensionForecast({
     currentAge: 40,
     retirementAge: 65,
@@ -66,12 +61,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   assert.equal(res.summary.isEligibleForStatePension, false, 'Retired at 65 before state pension age 67');
   assert.equal(res.summary.totalAnnualIncomeNominal, res.summary.potIncomeAnnualNominal, 'At 65, only pot income is counted in immediate total');
   assert.ok(res.summary.fullCombinedAnnualNominal > res.summary.totalAnnualIncomeNominal, 'Full combined includes future state pension');
+});
 
-  console.log('✓ Test 2 passed: Fixed monthly amount & early retirement before State Pension age');
-}
-
-// Test 3: UK Lump Sum Allowance Cap (£268,275)
-{
+test('Test 3: UK Lump Sum Allowance Cap (£268,275)', () => {
   const res = calculatePensionForecast({
     currentAge: 50,
     retirementAge: 60,
@@ -93,12 +85,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   assert.ok(res.summary.potNominal > 2000000, 'Pot exceeds £2m');
   assert.equal(res.summary.lumpSumNominal, UK_DEFAULTS.LUMP_SUM_ALLOWANCE_LIMIT, 'Lump sum must be capped at UK £268,275');
   assert.equal(res.summary.lumpSumCapped, true, 'Lump sum capped flag should be true');
+});
 
-  console.log('✓ Test 3 passed: UK statutory Lump Sum Allowance limit correctly enforced');
-}
-
-// Test 4: Triple lock inflation parity check
-{
+test('Test 4: Triple lock inflation parity check', () => {
   const inflation = 3.5;
   const res = calculatePensionForecast({
     currentAge: 25,
@@ -117,12 +106,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   const expectedNominalSP = UK_DEFAULTS.CURRENT_FULL_STATE_PENSION_ANNUAL * deflator;
   assert.ok(Math.abs(res.summary.statePensionAnnualNominal - expectedNominalSP) < 0.1, 'Nominal SP matches inflation compounding');
   assert.ok(Math.abs(res.summary.statePensionAnnualReal - UK_DEFAULTS.CURRENT_FULL_STATE_PENSION_ANNUAL) < 0.1, 'Real SP equals today full new state pension');
+});
 
-  console.log('✓ Test 4 passed: Triple-lock parity verified');
-}
-
-// Test 5: Drawdown trajectory until age 100
-{
+test('Test 5: Drawdown trajectory until age 100', () => {
   const res = calculatePensionForecast({
     currentAge: 30,
     retirementAge: 65,
@@ -149,12 +135,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   const postRetirePoint = res.timeline.find(d => d.age === 66);
   assert.ok(Math.abs(retirePoint.potAfterLumpSumNominal - res.summary.remainingPotNominal) < 1, 'Post-lump sum pot reflected at retirement');
   assert.ok(postRetirePoint.potDrawdownNominal > 0, 'Drawdown withdrawal is active in retirement');
+});
 
-  console.log('✓ Test 5 passed: Full lifetime trajectory to age 100 verified');
-}
-
-// Test 6: Pot depletion detection with high withdrawal rate
-{
+test('Test 6: Pot depletion detection with high withdrawal rate', () => {
   const res = calculatePensionForecast({
     currentAge: 50,
     retirementAge: 60,
@@ -174,10 +157,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   assert.equal(res.summary.potAt100Nominal, 0, 'Pot at age 100 is 0');
 
   console.log(`✓ Test 6 passed: High drawdown depletion detected at age ${res.summary.potDepletedAge}`);
-}
+});
 
-// Test 7: External personal SIPP with HMRC Basic Rate Tax Relief (+25% top up)
-{
+test('Test 7: External personal SIPP with HMRC Basic Rate Tax Relief (+25% top up)', () => {
   const netMonthly = 200;
   const res = calculatePensionForecast({
     currentAge: 30,
@@ -198,12 +180,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   assert.equal(res.summary.sippHmrcReliefAnnual, expectedHmrcRelief, 'HMRC relief should be +25% (£600)');
   assert.equal(res.summary.sippGrossAnnual, expectedGrossAnnual, 'SIPP gross annual should be £3,000');
   assert.ok(res.timeline[0].sippGrossContrib === 3000, 'Timeline reflects gross SIPP contribution');
+});
 
-  console.log('✓ Test 7 passed: Personal SIPP HMRC basic rate tax relief (+25% top-up) verified');
-}
-
-// Test 8: Monthly income private vs public breakdown
-{
+test('Test 8: Monthly income private vs public breakdown', () => {
   const res = calculatePensionForecast({
     currentAge: 30,
     retirementAge: 67,
@@ -221,12 +200,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   const sumMonthly = res.summary.privateIncomeMonthlyReal + res.summary.publicIncomeMonthlyReal;
   assert.ok(Math.abs(sumMonthly - res.summary.totalMonthlyIncomeReal) < 0.01, 'Private + Public equals Total Combined Monthly');
   assert.ok(Math.abs((res.summary.privateSharePercent + res.summary.publicSharePercent) - 100) < 0.01, 'Shares sum to 100%');
+});
 
-  console.log('✓ Test 8 passed: Monthly private vs public pension breakdown verified');
-}
-
-// Test 9: Purchasing power trajectory under percentage drawdown vs Triple-Lock State Pension
-{
+test('Test 9: Purchasing power trajectory under percentage drawdown vs Triple-Lock State Pension', () => {
   const res = calculatePensionForecast({
     currentAge: 35,
     retirementAge: 65,
@@ -257,42 +233,33 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   for (const pt of spPoints) {
     assert.equal(pt.statePensionReal, baselineSPReal, 'State Pension real purchasing power is 100% constant');
   }
+});
 
-  console.log('✓ Test 9 passed: Percentage drawdown real income decrease and triple-lock parity verified');
-}
-
-// Test 10: UK income tax bands (2026/27, rUK)
-{
+test('Test 10: UK income tax bands (2026/27, rUK)', () => {
   assert.equal(calculateIncomeTax(12570), 0);
   assert.equal(calculateIncomeTax(50270), 7540);
   assert.equal(Math.round(calculateIncomeTax(60000)), 7540 + Math.round(9730 * 0.4));
   // £125,140: PA fully tapered -> 37700*0.2 + (125140-37700)*0.4
   assert.equal(Math.round(calculateIncomeTax(125140)), Math.round(7540 + 87440 * 0.4));
-  console.log('✓ Test 10 passed: UK income tax bands and personal allowance taper verified');
-}
+});
 
-// Test 11: Net income is below gross; drawdown fully taxable after upfront lump sum
-{
+test('Test 11: Net income is below gross; drawdown fully taxable after upfront lump sum', () => {
   const res = calculatePensionForecast({ currentAge: 40, retirementAge: 67, annualSalary: 40000, contributionType: 'percent', employeeContribution: 5, employerContributionPercent: 3, inflationRate: 2.5, investmentGrowthRate: 6, feeRate: 0.5, takeLumpSum: true });
   const s = res.summary;
   assert.ok(s.netAnnualIncomeReal < s.totalAnnualIncomeReal, 'Net below gross');
   assert.equal(s.privateTaxableFraction, 1);
   const noLump = calculatePensionForecast({ currentAge: 40, retirementAge: 67, annualSalary: 40000, contributionType: 'percent', employeeContribution: 5, employerContributionPercent: 3, takeLumpSum: false });
   assert.equal(noLump.summary.privateTaxableFraction, 0.75);
-  console.log('✓ Test 11 passed: Retirement income tax applied');
-}
+});
 
-// Test 12: Fixed £ contributions rise with salary; SIPP contributions rise with inflation
-{
+test('Test 12: Fixed £ contributions rise with salary; SIPP contributions rise with inflation', () => {
   const res = calculatePensionForecast({ currentAge: 30, retirementAge: 40, annualSalary: 30000, annualSalaryIncrease: 3, inflationRate: 2, contributionType: 'amount', employeeContribution: 100, employerContributionPercent: 0, externalSippMonthlyNet: 100 });
   const t = res.accumulationTimeline;
   assert.ok(Math.abs(t[1].employeeContrib - 1200 * 1.03) < 1e-6);
   assert.ok(Math.abs(t[1].sippGrossContrib - 1500 * 1.02) < 1e-6);
-  console.log('✓ Test 12 passed: Contributions indexed');
-}
+});
 
-// Test 13: HMRC 100% of earnings relief cap and £60k Annual Allowance
-{
+test('Test 13: HMRC 100% of earnings relief cap and £60k Annual Allowance', () => {
   const low = calculatePensionForecast({ currentAge: 30, retirementAge: 35, annualSalary: 10000, annualSalaryIncrease: 0, inflationRate: 0, employeeContribution: 0, employerContributionPercent: 0, externalSippMonthlyNet: 2000 });
   assert.ok(Math.abs(low.accumulationTimeline[0].sippGrossContrib - 10000) < 1e-6, 'SIPP gross capped at salary');
   assert.ok(low.summary.contributionWarnings.reliefCapAge);
@@ -300,19 +267,15 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   const p = high.accumulationTimeline[0];
   assert.ok(Math.abs(p.workplaceContrib + p.sippGrossContrib - 60000) < 1e-6, 'Total capped at AA');
   assert.ok(high.summary.contributionWarnings.annualAllowanceAge);
-  console.log('✓ Test 13 passed: Relief cap and Annual Allowance enforced');
-}
+});
 
-// Test 14: Retirement-year withdrawal is deducted from the pot
-{
+test('Test 14: Retirement-year withdrawal is deducted from the pot', () => {
   const res = calculatePensionForecast({ currentAge: 60, retirementAge: 65, annualSalary: 50000, employeeContribution: 5, employerContributionPercent: 5, investmentGrowthRate: 0, feeRate: 0, inflationRate: 0, drawdownRate: 4 });
   const rp = res.timeline.find(d => d.isRetirementTransition);
   assert.ok(Math.abs(rp.closingPotNominal - res.summary.remainingPotNominal * 0.96) < 1e-6);
-  console.log('✓ Test 14 passed: First-year withdrawal deducted');
-}
+});
 
-// Test 15: Gross vs Net monthly income and tax breakdown
-{
+test('Test 15: Gross vs Net monthly income and tax breakdown', () => {
   const res = calculatePensionForecast({
     currentAge: 30,
     retirementAge: 67,
@@ -343,12 +306,9 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   assert.ok(pt67.incomeTaxNominal > 0, 'Point 67 has income tax nominal');
   assert.ok(pt67.netIncomeReal > 0, 'Point 67 has net income real');
   assert.ok(pt67.effectiveTaxRate > 0, 'Point 67 has effective tax rate');
+});
 
-  console.log('✓ Test 15 passed: Gross vs Net monthly estimation and tax breakdown verified');
-}
-
-// Test 16: Maximum current age (71) and maximum retirement age (72) bounds
-{
+test('Test 16: Maximum current age (71) and maximum retirement age (72) bounds', () => {
   // Exceeding maximum ages
   const res = calculatePensionForecast({
     currentAge: 75,
@@ -372,11 +332,4 @@ console.log('--- Running UK Pension Calculator Test Suite ---');
   assert.equal(res2.inputs.currentAge, 71, 'Current age is 71');
   assert.equal(res2.inputs.retirementAge, 72, 'Retirement age must be at least currentAge + 1 (72)');
   assert.equal(res2.summary.yearsToRetire, 1);
-
-  console.log('✓ Test 16 passed: Maximum current age (71) and maximum retirement age (72) enforced');
-}
-
-console.log('ALL TESTS PASSED SUCCESSFULLY! 🎉');
-
-
-
+});
