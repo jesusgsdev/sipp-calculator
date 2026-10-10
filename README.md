@@ -1,6 +1,12 @@
 # UK Pension & SIPP Forecaster
 
-[![Tests](https://img.shields.io/badge/tests-16%20passing-brightgreen.svg)](#running-tests)
+[![CI](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/ci.yml)
+[![Deploy](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/pages.yml/badge.svg)](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/pages.yml)
+[![CodeQL](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/codeql.yml/badge.svg)](https://github.com/jesusgsdev/sipp-calculator/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/github/license/jesusgsdev/sipp-calculator)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/jesusgsdev/sipp-calculator)](https://github.com/jesusgsdev/sipp-calculator/commits/main)
+[![Stars](https://img.shields.io/github/stars/jesusgsdev/sipp-calculator?style=flat)](https://github.com/jesusgsdev/sipp-calculator/stargazers)
+[![Live demo](https://img.shields.io/badge/demo-live-brightgreen)](https://jesusgsdev.github.io/sipp-calculator/)
 [![UK Compliance](https://img.shields.io/badge/UK%20Pension%20Rules-2025%2F26%20%26%202026%2F27-blue.svg)](#key-features)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20(Vanilla%20JS)-success.svg)](#quick-start)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Client--Side-blueviolet.svg)](#data-privacy--local-profiles)

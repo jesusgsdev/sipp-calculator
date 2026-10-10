@@ -1,0 +1,17 @@
+{
+  "name": "sipp-calculator",
+  "version": "1.0.0",
+  "description": "UK Pension & SIPP Forecaster - private, client-side, zero dependencies",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jesusgsdev/sipp-calculator.git"
+  },
+  "scripts": {
+    "test": "node test/calculator.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
